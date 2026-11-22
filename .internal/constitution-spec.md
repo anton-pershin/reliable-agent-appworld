@@ -60,7 +60,7 @@ Manual.
 
 ### 3. Acceptance criteria
 
-An external validation service evaluates each implementation against FR1–FR2 and NFR1–NFR5. The implementation is accepted only when all these requirements are satisfied. Preferences in Section 2.3 are not acceptance criteria.
+An external validation service evaluates each implementation against FR1–FR2 and NFR1 and NFR5. The implementation is accepted only when all these requirements are satisfied. Preferences in Section 2.3 are not acceptance criteria.
 
 Use an already running HTTP validation service at a supplied base URL. The `appworld` registered profile is authoritative for project-level acceptance.
 
@@ -128,7 +128,7 @@ Each criterion has one of three statuses:
 
 A metric that could not be computed has `computation_status` set to `failed_to_compute`, `computed_value` set to `null`, and an explanation in `error_message`. A computed metric has `acceptance_status` set to `accepted` or `rejected` and includes the applicable threshold or expected value.
 
-Only a completed full-validation response from the unchanged authoritative `default` profile with every criterion in scope accepted certifies an accepted implementation. The project is complete only after that accepted implementation is integrated into the solution's main branch.
+Only a completed full-validation response from the unchanged authoritative `appworld` profile with every criterion in scope accepted certifies an accepted implementation. The project is complete only after that accepted implementation is integrated into the solution's main branch.
 
 Append every completed, failed, or aborted full-validation run to `.internal/validation-results.md`, recording its run ID, related spec when applicable, solution commit, run status, and the returned `artifacts_location`. Never replace an earlier run entry. Partial runs do not belong in this history. Historical results produced before the run-aware contract remain in `.internal/validation-results-old.md`.
 
