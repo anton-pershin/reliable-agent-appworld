@@ -17,13 +17,14 @@ Select, implement, and evaluate a credible baseline agent for the requirements i
 
 ### Current state
 
-The solution repository contains the constitution and terminology but no implementation. The validation service has an AppWorld profile and a documented per-episode process protocol. There is no measured solution baseline yet, so task success, error awareness, consistency, latency, and resource use remain unknown.
+The solution repository contains the constitution and terminology but no implementation. The validation service has an AppWorld profile and a documented per-episode process protocol. A dedicated current validator instance is running locally for configuration discovery, but no episodes have been submitted. There is no measured solution baseline yet, so task success, error awareness, consistency, latency, and resource use remain unknown.
 
 ### Contexts
 
 | ID | Solution implementation | Validation setup | Runtime and environment | Baseline |
 |----|-------------------------|------------------|-------------------------|----------|
 | C1 | No implementation; constitution at the merged project baseline | `agent-validation` AppWorld support at commit `cc09c57` during initial contract review | Local CPU-only investigation host; A10 model server not yet provisioned | No solution measurements |
+| C2 | No implementation; configuration discovery only | Current validator commit `cc09c57` serving `appworld` at `127.0.0.1:8681` | Local CPU-only investigation host; no AppWorld episodes or model provider | Successful discovery, no solution measurements |
 
 ### Current understanding
 
@@ -49,6 +50,7 @@ The solution repository contains the constitution and terminology but no impleme
 |----|------------------|---------|---------------------------|------------------------|
 | E1 | What exact process, message, tool, timing, and evidence contract must the baseline satisfy? | C1 | Pending | Pending |
 | E2 | Can an existing local validation service run the AppWorld profile? | C1 | All three discovered endpoints returned HTTP 404 for AppWorld configuration discovery: [local discovery](evidence/baseline-local-services.json). | Leave those services unchanged. Start a separate current AppWorld-capable instance when the implementation is ready for contract tests. |
+| E3 | Can the current validator expose its authoritative AppWorld configuration through the documented HTTP boundary? | C2 | Discovery succeeded and returned a complete editable configuration plus matching schema: [discovery summary](evidence/appworld-discovery-summary.json). | Use this dedicated service for investigation-stage discovery. Select partial configurations by modifying the complete returned copy; do not duplicate its thresholds in solution documentation. |
 
 ### Next candidates
 
