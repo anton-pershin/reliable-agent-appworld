@@ -436,7 +436,7 @@ async def test_tool_executor_correlates_write_and_ordered_read_results() -> None
 async def test_tool_executor_gives_observation_only_remaining_absolute_budget(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    clock = _SequenceClock(100.0, 100.75)
+    clock = _SequenceClock(100.0, 100.0, 100.0, 100.75)
     monkeypatch.setattr(protocol, "time", SimpleNamespace(monotonic=clock))
     transport = JsonLinesTransport(
         stdin=io.BytesIO(_json_bytes(_observation_message())), stdout=io.BytesIO()

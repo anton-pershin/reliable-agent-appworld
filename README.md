@@ -43,8 +43,10 @@ Important defaults:
 | Individual observation budget | `12,000` characters |
 | Public history budget | `24,000` characters |
 | Maximum log bytes | `750,000` |
+| Process-wide stderr proxy | `900,000` bytes |
+| Cumulative protocol stdout | `1,000,000` bytes with reserved final space |
 
-No model seed is configured. Model generation, retries, repairs, action execution, and final delivery share an absolute episode deadline. Controlled failure responses use `completed=false` and `likely_incorrect=true`.
+No model seed is configured. Model generation, retries, repairs, action execution, and final delivery share an absolute episode deadline. Real standard-input/output descriptors use nonblocking I/O, and protocol stdout reserves space for a final response. Controlled failure responses use `completed=false` and `likely_incorrect=true`. The reusable runner propagates cancellation; the one-episode CLI applies its own bounded controlled-final policy.
 
 ## Interaction contract
 

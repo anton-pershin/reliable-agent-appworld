@@ -12,7 +12,7 @@ license = "MIT"
 dependencies = [
   "jsonschema>=4.23,<5",
   "pydantic>=2.10,<3",
-  "pydantic-ai>=2.66,<3",
+  "pydantic-ai>=2.66,<2.75",
 ]
 
 [project.optional-dependencies]

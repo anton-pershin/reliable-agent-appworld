@@ -67,7 +67,7 @@ class Observation(ContractModel):
 
 
 class VersionedMessage(ContractModel):
-    protocol_version: int = Field(default=1, strict=True)
+    protocol_version: int = Field(strict=True)
 
     @field_validator("protocol_version")
     @classmethod
@@ -78,19 +78,19 @@ class VersionedMessage(ContractModel):
 
 
 class TaskMessage(VersionedMessage):
-    type: Literal["task"] = "task"
+    type: Literal["task"]
     episode_id: str = Field(min_length=1)
     task: Task
 
 
 class ActionsMessage(VersionedMessage):
-    type: Literal["actions"] = "actions"
+    type: Literal["actions"]
     call_id: str = Field(min_length=1)
     actions: list[ActionRequest] = Field(min_length=1)
 
 
 class ObservationMessage(VersionedMessage):
-    type: Literal["observation"] = "observation"
+    type: Literal["observation"]
     call_id: str
     results: list[ActionResult]
 
@@ -100,10 +100,10 @@ class ObservationMessage(VersionedMessage):
 
 class SelfAssessment(ContractModel):
     completed: StrictBool
-    answer: str
+    answer: str = Field(max_length=4000)
     confidence: float = Field(ge=0, le=1, allow_inf_nan=False)
     likely_incorrect: StrictBool
-    reason: str
+    reason: str = Field(max_length=1000)
 
     @field_validator("confidence", mode="before")
     @classmethod
@@ -120,7 +120,7 @@ class SelfAssessment(ContractModel):
 
 
 class FinalMessage(VersionedMessage, SelfAssessment):
-    type: Literal["final"] = "final"
+    type: Literal["final"]
 
 
 class ActionDecision(ContractModel):
@@ -138,12 +138,25 @@ class FinalDecision(SelfAssessment):
 
     def as_message(self) -> FinalMessage:
         return FinalMessage(
+            protocol_version=1,
+            type="final",
             completed=self.completed,
             answer=self.answer,
             confidence=self.confidence,
             likely_incorrect=self.likely_incorrect,
             reason=self.reason,
         )
+
+
+def controlled_failure(reason: str) -> FinalDecision:
+    bounded = reason if len(reason) <= 900 else reason[:897] + "..."
+    return FinalDecision(
+        completed=False,
+        answer="Task stopped before completion.",
+        confidence=0.0,
+        likely_incorrect=True,
+        reason=bounded,
+    )
 
 
 Decision: TypeAlias = ActionDecision | FinalDecision

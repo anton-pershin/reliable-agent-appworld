@@ -5,7 +5,7 @@ import time
 import jsonschema
 
 from .config import AgentConfig
-from .contracts import ActionDecision, Decision, FinalDecision, TaskState
+from .contracts import ActionDecision, Decision, FinalDecision, TaskState, controlled_failure
 from .model import DecisionModel
 from .observability import EventLogger
 
@@ -18,15 +18,8 @@ class DecisionEngine:
         self.model = model
         self.logger = logger
 
-    @staticmethod
-    def controlled_stop(reason: str) -> FinalDecision:
-        return FinalDecision(
-            completed=False,
-            answer="Task stopped before completion.",
-            confidence=0.0,
-            likely_incorrect=True,
-            reason=reason,
-        )
+    def controlled_stop(self, reason: str) -> FinalDecision:
+        return controlled_failure(self.logger.redact_text(reason))
 
     def _validate_action(self, state: TaskState, decision: ActionDecision) -> None:
         tools = {tool.name: tool for tool in state.task.tools}
@@ -65,11 +58,15 @@ class DecisionEngine:
                     )
                     continue
                 return decision
-            if not state.attempts and attempt < self.config.output_retries:
-                state.validation_feedback.append(
-                    "Completion requires public task evidence and, for AppWorld, a complete_task action first."
+            if not state.attempts:
+                if attempt < self.config.output_retries:
+                    state.validation_feedback.append(
+                        "Completion requires public task evidence and, for AppWorld, a complete_task action first."
+                    )
+                    continue
+                return self.controlled_stop(
+                    "The model repeatedly declared completion without public task evidence"
                 )
-                continue
             return decision
         return self.controlled_stop("The model could not produce a valid task decision")
 

@@ -138,12 +138,33 @@ async def test_structured_action_and_sampling_without_seed():
     assert seen["top_k"] == 20
     assert seen["extra_body"]["min_p"] == 0
     assert seen["extra_body"]["repetition_penalty"] == 1.0
+    assert seen["max_retries"] == 0
     assert seen.get("seed") is None
     response = next(event for event in events(stream) if event["event"] == "model_response")
     assert response["reported_model"] == "test:test-model"
     assert response["provider"] == "test"
     assert response["usage"]["requests"] == 1
     assert response["private_reasoning"] == "not-retained"
+
+
+async def test_pydantic_schema_validation_repair_is_retried_and_logged():
+    cfg = config(output_retries=1)
+    event_logger, stream = logger(cfg)
+    calls = 0
+
+    def respond(messages, info):
+        nonlocal calls
+        calls += 1
+        tool = next(tool for tool in info.output_tools if "ActionDecision" in tool.name)
+        args = action().model_dump() if calls == 2 else {"kind": "action", "action": "not-json"}
+        return ModelResponse(parts=[ToolCallPart(tool_name=tool.name, args=args)])
+
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
+    result = await client.decide(TaskState(task=task()), 30)
+
+    assert isinstance(result, ActionDecision)
+    assert calls == 2
+    assert any(event["event"] == "model_repair" for event in events(stream))
 
 
 async def test_tool_rejection_falls_back_to_text_json():

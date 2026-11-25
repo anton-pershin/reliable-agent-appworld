@@ -66,6 +66,7 @@ class PydanticAIModelClient:
             "top_k": self.config.top_k,
             "presence_penalty": self.config.presence_penalty,
             "max_tokens": self.config.max_output_tokens,
+            "max_retries": 0,
             "extra_body": {
                 "top_k": self.config.top_k,
                 "min_p": self.config.min_p,
@@ -99,26 +100,51 @@ class PydanticAIModelClient:
             self._attempt_payload(attempt, self.config.max_observation_chars)
             for attempt in state.attempts
         ]
+        if not entries:
+            return []
+        marker = "<older history trimmed for context budget>"
 
-        def size() -> int:
-            return len(json.dumps(entries, ensure_ascii=False, default=str))
+        def size(values: list[Any]) -> int:
+            return len(json.dumps(values, ensure_ascii=False, default=str))
 
+        if size(entries) <= self.config.max_history_chars:
+            return entries
         trimmed = False
         for index in range(len(entries) - 1):
-            if size() <= self.config.max_history_chars:
+            if size([marker, *entries]) <= self.config.max_history_chars:
                 break
-            if not entries[index].get("observation_trimmed"):
-                entries[index]["results"] = "<old observation trimmed for context budget>"
-                entries[index]["observation_trimmed"] = True
-                trimmed = True
-        while entries and size() > self.config.max_history_chars:
+            entries[index]["results"] = "<old observation trimmed for context budget>"
+            entries[index]["observation_trimmed"] = True
+            trimmed = True
+        while len(entries) > 1 and size([marker, *entries]) > self.config.max_history_chars:
             entries.pop(0)
             trimmed = True
+        if size([marker, *entries]) > self.config.max_history_chars:
+            latest = state.attempts[-1]
+            entries = [
+                {
+                    "call_id": latest.call_id[:100],
+                    "action": {
+                        "name": latest.action.name[:100],
+                        "arguments": "<truncated for context budget>",
+                    },
+                    "results": "<recent observation truncated for context budget>",
+                    "observation_trimmed": True,
+                }
+            ]
+            trimmed = True
+        result: list[Any] = [marker, *entries] if trimmed else entries
+        if size(result) > self.config.max_history_chars:
+            result = [
+                marker,
+                {"latest_action": state.attempts[-1].action.name[:50], "results": "<trimmed>"},
+            ]
+        if size(result) > self.config.max_history_chars:
+            result = ["<history trimmed; latest attempt retained but too large to display>"]
         if trimmed:
-            entries.insert(0, "<older history trimmed for context budget>")
             state.history_trimmed = True
-            self.logger.emit("context_trimmed", retained_attempts=len(entries) - 1)
-        return entries
+            self.logger.emit("context_trimmed", retained_attempts=len(entries))
+        return result
 
     def prompt(self, state: TaskState) -> str:
         return json.dumps(
@@ -255,7 +281,10 @@ class PydanticAIModelClient:
                     "Return only corrected JSON without Markdown or commentary."
                 )
                 self.logger.emit(
-                    "model_repair", operation_id=operation_id, validation_feedback=str(exc)
+                    "model_repair",
+                    operation_id=operation_id,
+                    validation_feedback=str(exc),
+                    public_output=text,
                 )
                 continue
             self._log_result(result, operation_id, "text")

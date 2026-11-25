@@ -68,6 +68,10 @@ def _final_values(**overrides):
     return values | overrides
 
 
+def _final_message_values(**overrides):
+    return _final_values(protocol_version=1, type="final", **overrides)
+
+
 def _attempt(call_id: str) -> ActionAttempt:
     return ActionAttempt(
         call_id=call_id,
@@ -78,7 +82,9 @@ def _attempt(call_id: str) -> ActionAttempt:
 
 
 def test_appworld_task_and_tool_schema_round_trip():
-    message = TaskMessage(episode_id="episode-1", task=_appworld_task())
+    message = TaskMessage(
+        protocol_version=1, type="task", episode_id="episode-1", task=_appworld_task()
+    )
 
     decoded = TaskMessage.model_validate_json(message.model_dump_json())
 
@@ -128,14 +134,18 @@ def test_appworld_action_observation_and_final_contracts_round_trip():
         name="execute_code",
         arguments={"code": "apis.supervisor.complete_task(answer='Task complete')"},
     )
-    actions = ActionsMessage(call_id="call-1", actions=[action])
+    actions = ActionsMessage(
+        protocol_version=1, type="actions", call_id="call-1", actions=[action]
+    )
     results = [
         ActionResult(
             status="ok",
             observation={"stdout": "", "result": "Task complete"},
         )
     ]
-    observation = ObservationMessage(call_id="call-1", results=results)
+    observation = ObservationMessage(
+        protocol_version=1, type="observation", call_id="call-1", results=results
+    )
     final = FinalDecision(**_final_values()).as_message()
 
     for message in (actions, observation, final):
@@ -151,12 +161,13 @@ def test_appworld_action_observation_and_final_contracts_round_trip():
     with pytest.raises(ValidationError):
         ActionBatch(actions=[])
     with pytest.raises(ValidationError):
-        ActionsMessage(call_id="call-1", actions=[])
+        ActionsMessage(protocol_version=1, type="actions", call_id="call-1", actions=[])
 
 
-def test_protocol_version_defaults_to_one():
-    assert VersionedMessage().protocol_version == 1
+def test_protocol_envelope_fields_are_required():
     assert VersionedMessage(protocol_version=1).protocol_version == 1
+    with pytest.raises(ValidationError):
+        VersionedMessage()
 
 
 @pytest.mark.parametrize("version", [True, 1.0, "1", 0, 2, None])
@@ -169,12 +180,12 @@ def test_protocol_version_is_strict_and_only_one(version):
 @pytest.mark.parametrize("value", [0, 1, 1.0, "true", "false", None])
 def test_final_self_assessment_requires_strict_booleans(field, value):
     with pytest.raises(ValidationError):
-        FinalMessage.model_validate(_final_values(**{field: value}))
+        FinalMessage.model_validate(_final_message_values(**{field: value}))
 
 
 @pytest.mark.parametrize("confidence", [0, 0.25, 1])
 def test_confidence_accepts_finite_json_numbers_in_range(confidence):
-    final = FinalMessage.model_validate(_final_values(confidence=confidence))
+    final = FinalMessage.model_validate(_final_message_values(confidence=confidence))
 
     assert final.confidence == confidence
     assert isinstance(final.confidence, float)
@@ -196,7 +207,7 @@ def test_confidence_accepts_finite_json_numbers_in_range(confidence):
 )
 def test_confidence_rejects_nonfinite_out_of_range_and_non_numeric_values(confidence):
     with pytest.raises(ValidationError):
-        FinalMessage.model_validate(_final_values(confidence=confidence))
+        FinalMessage.model_validate(_final_message_values(confidence=confidence))
 
 
 def test_task_state_allocates_sequential_call_ids_without_reuse():

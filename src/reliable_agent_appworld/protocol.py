@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import json
 import math
+import os
 import sys
 import time
 from collections.abc import Sequence
@@ -15,6 +17,7 @@ from .contracts import (
     ActionResult,
     ActionsMessage,
     FinalDecision,
+    FinalMessage,
     Observation,
     ObservationMessage,
     Task,
@@ -22,6 +25,7 @@ from .contracts import (
 )
 
 MAX_PROTOCOL_BYTES = 1_000_000
+FINAL_RESERVE_BYTES = 25_000
 MessageT = TypeVar("MessageT", bound=BaseModel)
 
 
@@ -40,11 +44,15 @@ def _finite_float(value: str) -> float:
     return result
 
 
+def _strict_json_loads(value: str):
+    return json.loads(value, parse_constant=_reject_constant, parse_float=_finite_float)
+
+
 def decode_appworld_public_input(task: Task) -> Task:
     try:
-        payload = json.loads(task.input)
-    except json.JSONDecodeError as exc:
-        raise ProtocolError("AppWorld task.input must be a JSON string") from exc
+        payload = _strict_json_loads(task.input)
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise ProtocolError("AppWorld task.input must be a JSON string containing finite JSON") from exc
     if not isinstance(payload, dict):
         raise ProtocolError("Decoded AppWorld task.input must be an object")
     required = {"instruction", "supervisor", "app_descriptions"}
@@ -64,8 +72,18 @@ def decode_appworld_public_input(task: Task) -> Task:
         for key, value in descriptions.items()
     ):
         raise ProtocolError("AppWorld app_descriptions must be a string map")
-    normalized = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+    normalized = json.dumps(
+        payload, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False
+    )
     return task.model_copy(update={"input": normalized})
+
+
+def _file_descriptor(stream: BinaryIO) -> int | None:
+    try:
+        descriptor = stream.fileno()
+    except (AttributeError, io.UnsupportedOperation, OSError, ValueError):
+        return None
+    return descriptor if isinstance(descriptor, int) and descriptor >= 0 else None
 
 
 class JsonLinesTransport:
@@ -74,13 +92,83 @@ class JsonLinesTransport:
         stdin: BinaryIO | None = None,
         stdout: BinaryIO | None = None,
         max_bytes: int = MAX_PROTOCOL_BYTES,
+        max_total_bytes: int = MAX_PROTOCOL_BYTES,
+        final_reserve_bytes: int = FINAL_RESERVE_BYTES,
     ) -> None:
         self.stdin = stdin or sys.stdin.buffer
         self.stdout = stdout or sys.stdout.buffer
         self.max_bytes = max_bytes
+        self.max_total_bytes = max_total_bytes
+        self.final_reserve_bytes = final_reserve_bytes
+        self.bytes_written = 0
         self._write_lock = asyncio.Lock()
+        self._read_buffer = bytearray()
+        self._stdin_fd = _file_descriptor(self.stdin)
+        self._stdout_fd = _file_descriptor(self.stdout)
+        if self._stdin_fd is not None:
+            os.set_blocking(self._stdin_fd, False)
+        if self._stdout_fd is not None:
+            os.set_blocking(self._stdout_fd, False)
+
+    async def _wait_descriptor(self, descriptor: int, *, write: bool, timeout: float) -> None:
+        loop = asyncio.get_running_loop()
+        ready = asyncio.Event()
+        add = loop.add_writer if write else loop.add_reader
+        remove = loop.remove_writer if write else loop.remove_reader
+        add(descriptor, ready.set)
+        try:
+            await asyncio.wait_for(ready.wait(), timeout)
+        finally:
+            remove(descriptor)
+
+    async def _fd_readline(self, timeout: float | None) -> bytes:
+        assert self._stdin_fd is not None
+        deadline = time.monotonic() + timeout if timeout is not None else None
+        while True:
+            newline = self._read_buffer.find(b"\n")
+            if newline >= 0:
+                line = bytes(self._read_buffer[: newline + 1])
+                del self._read_buffer[: newline + 1]
+                if len(line) > self.max_bytes:
+                    raise ProtocolError("Protocol message exceeds byte limit")
+                return line
+            if len(self._read_buffer) > self.max_bytes:
+                raise ProtocolError("Protocol message exceeds byte limit")
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Protocol read deadline exhausted")
+            if remaining is None:
+                await self._wait_descriptor_forever(False)
+            else:
+                await self._wait_descriptor(
+                    self._stdin_fd, write=False, timeout=remaining
+                )
+            try:
+                chunk = os.read(
+                    self._stdin_fd, min(65_536, self.max_bytes + 1 - len(self._read_buffer))
+                )
+            except BlockingIOError:
+                continue
+            if not chunk:
+                raise ProtocolError("Unexpected end of protocol input")
+            self._read_buffer.extend(chunk)
+
+    async def _wait_descriptor_forever(self, write: bool) -> None:
+        descriptor = self._stdout_fd if write else self._stdin_fd
+        assert descriptor is not None
+        loop = asyncio.get_running_loop()
+        ready = asyncio.Event()
+        add = loop.add_writer if write else loop.add_reader
+        remove = loop.remove_writer if write else loop.remove_reader
+        add(descriptor, ready.set)
+        try:
+            await ready.wait()
+        finally:
+            remove(descriptor)
 
     async def _readline(self, timeout: float | None = None) -> bytes:
+        if self._stdin_fd is not None:
+            return await self._fd_readline(timeout)
         operation = asyncio.to_thread(self.stdin.readline, self.max_bytes + 1)
         line = await asyncio.wait_for(operation, timeout) if timeout is not None else await operation
         if not line:
@@ -92,9 +180,7 @@ class JsonLinesTransport:
     def _decode(self, line: bytes, model: type[MessageT]) -> MessageT:
         try:
             text = line.decode("utf-8")
-            payload = json.loads(
-                text, parse_constant=_reject_constant, parse_float=_finite_float
-            )
+            payload = _strict_json_loads(text)
             return model.model_validate(payload)
         except (UnicodeDecodeError, json.JSONDecodeError, ValidationError, ValueError) as exc:
             raise ProtocolError(f"Invalid {model.__name__}: {exc}") from exc
@@ -103,7 +189,7 @@ class JsonLinesTransport:
         message = self._decode(await self._readline(timeout), TaskMessage)
         return message.episode_id, message.task
 
-    async def _write(self, message: BaseModel) -> None:
+    def _encode(self, message: BaseModel) -> bytes:
         encoded = (
             json.dumps(
                 message.model_dump(mode="json", exclude_none=True),
@@ -115,19 +201,54 @@ class JsonLinesTransport:
         ).encode("utf-8")
         if len(encoded) > self.max_bytes:
             raise ProtocolError("Outgoing protocol message exceeds byte limit")
+        reserve = 0 if isinstance(message, FinalMessage) else self.final_reserve_bytes
+        if self.bytes_written + len(encoded) + reserve > self.max_total_bytes:
+            raise ProtocolError("Cumulative protocol stdout budget exhausted")
+        return encoded
+
+    async def _fd_write(self, encoded: bytes, timeout: float | None) -> None:
+        assert self._stdout_fd is not None
+        deadline = time.monotonic() + timeout if timeout is not None else None
+        view = memoryview(encoded)
+        while view:
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                raise TimeoutError("Protocol write deadline exhausted")
+            if remaining is None:
+                await self._wait_descriptor_forever(True)
+            else:
+                await self._wait_descriptor(self._stdout_fd, write=True, timeout=remaining)
+            try:
+                written = os.write(self._stdout_fd, view)
+            except BlockingIOError:
+                continue
+            self.bytes_written += written
+            view = view[written:]
+
+    async def _write(self, message: BaseModel) -> None:
+        encoded = self._encode(message)
+        if self._stdout_fd is not None:
+            await self._fd_write(encoded, timeout=None)
+            return
 
         def write() -> None:
             self.stdout.write(encoded)
             self.stdout.flush()
 
         await asyncio.to_thread(write)
+        self.bytes_written += len(encoded)
 
     async def _serialized_write(self, message: BaseModel, timeout: float | None) -> None:
-        await self._write_lock.acquire()
+        started = time.monotonic()
+        if timeout is not None:
+            await asyncio.wait_for(self._write_lock.acquire(), timeout)
+        else:
+            await self._write_lock.acquire()
+        remaining = None if timeout is None else max(0.0, timeout - (time.monotonic() - started))
         write_task = asyncio.create_task(self._write(message))
         try:
-            if timeout is not None:
-                await asyncio.wait_for(asyncio.shield(write_task), timeout)
+            if remaining is not None:
+                await asyncio.wait_for(asyncio.shield(write_task), remaining)
             else:
                 await asyncio.shield(write_task)
         except (TimeoutError, asyncio.CancelledError):
@@ -145,7 +266,9 @@ class JsonLinesTransport:
     async def write_actions(
         self, call_id: str, actions: Sequence[ActionRequest], timeout: float | None = None
     ) -> None:
-        message = ActionsMessage(call_id=call_id, actions=list(actions))
+        message = ActionsMessage(
+            protocol_version=1, type="actions", call_id=call_id, actions=list(actions)
+        )
         await self._serialized_write(message, timeout)
 
     async def read_observation(

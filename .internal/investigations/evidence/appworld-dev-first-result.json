@@ -1,0 +1,36 @@
+{
+  "run_id": "20261125T113308-793242Z-a3b8246de090",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T113308-793242Z-a3b8246de090",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "606a1bfbbbce353ff12e5d4601d2b5cadd9cab0e",
+  "configuration": {
+    "dev_scenarios": ["50e1ac9", "fac291d"],
+    "task_variants": 6,
+    "repeats": 2,
+    "planned_episodes": 12,
+    "criteria": ["AC1", "AC2", "AC3", "AC7"]
+  },
+  "criteria": {
+    "AC1": {"status": "valid", "overall_success_rate": 0.0},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.75},
+    "AC3": {"status": "accepted", "repeat_range": 0.0},
+    "AC7": {"status": "accepted", "timely_final_response_rate": 1.0}
+  },
+  "episodes": {
+    "completed_records": 12,
+    "infrastructure_failures": 0,
+    "successful_tasks": 0,
+    "completed_true_claims": 4,
+    "likely_incorrect_true": 9,
+    "mean_actions": 12.5833,
+    "maximum_actions": 16,
+    "total_timed_episode_seconds": 2737.8278,
+    "mean_episode_seconds": 228.1523,
+    "maximum_episode_seconds": 261.7811,
+    "model_timeout_controlled_stops": 6,
+    "structured_output_retry_controlled_stops": 2
+  },
+  "private_evaluation_reports_inspected": false,
+  "decision": "Accept this as the pre-hardening AC6 diagnostic and a valid but low-quality baseline. Do not infer consistency from zero successes. A full unchanged-default run could take roughly 40 hours at this mean latency; use explicit shorter internal budgets for the hardened diagnostic/full candidate while retaining controlled timely finals."
+}
