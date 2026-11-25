@@ -18,3 +18,31 @@
 | Likely incorrect flag | The agent's boolean assessment, returned as `likely_incorrect`, that its answer is likely incorrect. |
 | Action attempt | One requested operation in an execution environment, including an action-catalog request, a failed or rejected action, or a repeated action. Each action in a batch is one action attempt. |
 | End-to-end time | Elapsed time from task receipt to the final response, including self-assessment. |
+
+### Integration interfaces
+
+| Term | Definition |
+|------|------------|
+| Calling system | An external system that requests decisions or complete task execution from the agent. |
+| Interaction bridge | A component that translates between the calling system's interaction format and the decision engine's contracts. |
+| Task runner | A component that controls complete task execution by requesting decisions and executing actions until completion or termination. |
+| Interaction protocol | The rules and formats for exchanging tasks, observations, action requests, and responses. |
+
+### Agent decision logic
+
+| Term | Definition |
+|------|------------|
+| Stateful decision engine | The reusable component that maintains task state and produces the next action, response, or completion declaration with self-assessment. |
+| Task state | Information retained by the agent across interactions within an episode. |
+| Observation | Information supplied to the agent by the calling system or execution environment. |
+| Self-assessment | The answer's confidence, likely incorrect flag, and short reason supplied by the agent before private evaluation results are revealed. |
+
+### Model and tool access
+
+| Term | Definition |
+|------|------------|
+| Model client | The component that provides configurable access to model providers through Pydantic AI. |
+| Model provider | An external service or system that performs model inference. |
+| Tool | An operation exposed to the agent through a description and an execution interface. |
+| Tool execution interface | The component that connects requested actions to an execution environment and returns observations or failures. |
+| Execution environment | The external system in which requested operations are performed. |
