@@ -99,6 +99,22 @@ def events(stream):
     return [json.loads(line) for line in stream.getvalue().splitlines()]
 
 
+def test_internal_decision_accepts_json_object_strings():
+    decision = ActionDecision.model_validate(
+        {
+            "kind": "action",
+            "action": json.dumps(
+                {
+                    "name": "execute_code",
+                    "arguments": json.dumps({"code": "print(42)"}),
+                }
+            ),
+        }
+    )
+    assert decision.action.name == "execute_code"
+    assert decision.action.arguments == {"code": "print(42)"}
+
+
 async def test_structured_action_and_sampling_without_seed():
     cfg = config()
     event_logger, stream = logger(cfg)

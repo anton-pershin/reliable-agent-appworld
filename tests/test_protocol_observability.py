@@ -625,6 +625,17 @@ def test_credentials_and_bearer_tokens_are_redacted_recursively(
     assert event["public"] == "unchanged"
 
 
+def test_token_budget_fields_are_public_while_token_credentials_are_redacted() -> None:
+    stream = io.StringIO()
+    logger = EventLogger("episode", AgentConfig(), stream=stream, clock=lambda: 0.0)
+
+    logger.emit("token_fields", max_output_tokens=4096, access_token="private")
+
+    event = _stream_events(stream)[0]
+    assert event["max_output_tokens"] == 4096
+    assert event["access_token"] == "<redacted>"
+
+
 def test_redaction_happens_before_payload_truncation(monkeypatch: pytest.MonkeyPatch) -> None:
     secret = "sk-secret-that-must-never-leak"
     monkeypatch.setenv("OPENAI_API_KEY", secret)

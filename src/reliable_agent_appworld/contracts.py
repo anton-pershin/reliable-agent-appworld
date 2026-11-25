@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 from typing import Literal, TypeAlias
 
@@ -8,6 +9,18 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 
 class ContractModel(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_assignment=True)
+
+
+def _json_object(value: object) -> object:
+    if not isinstance(value, str):
+        return value
+    try:
+        decoded = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise ValueError("expected a JSON object string") from exc
+    if not isinstance(decoded, dict):
+        raise ValueError("expected a JSON object string")
+    return decoded
 
 
 class ToolDescription(ContractModel):
@@ -26,6 +39,11 @@ class Task(ContractModel):
 class ActionRequest(ContractModel):
     name: str = Field(min_length=1)
     arguments: dict = Field(default_factory=dict)
+
+    @field_validator("arguments", mode="before")
+    @classmethod
+    def parse_arguments_object(cls, value: object) -> object:
+        return _json_object(value)
 
 
 class ActionBatch(ContractModel):
@@ -108,6 +126,11 @@ class FinalMessage(VersionedMessage, SelfAssessment):
 class ActionDecision(ContractModel):
     kind: Literal["action"] = "action"
     action: ActionRequest
+
+    @field_validator("action", mode="before")
+    @classmethod
+    def parse_action_object(cls, value: object) -> object:
+        return _json_object(value)
 
 
 class FinalDecision(SelfAssessment):

@@ -12,7 +12,8 @@ from typing import Any, TextIO
 from .config import AgentConfig
 
 _LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40}
-_SECRET_KEY = re.compile(r"(api[_-]?key|authorization|password|secret|token)", re.IGNORECASE)
+_SECRET_KEY = re.compile(r"(api[_-]?key|authorization|password|secret)", re.IGNORECASE)
+_TOKEN_KEYS = {"token", "access_token", "auth_token", "refresh_token", "id_token"}
 _BEARER = re.compile(r"(?i)bearer\s+[a-z0-9._~+/=-]+")
 _LOG_MARKER_RESERVE = len(b'{"event":"log_limit_reached"}\n')
 
@@ -59,7 +60,8 @@ class EventLogger:
                 if index >= 50:
                     result["_truncated_items"] = len(value) - 50
                     break
-                if _SECRET_KEY.search(str(key)):
+                normalized_key = str(key).lower().replace("-", "_")
+                if _SECRET_KEY.search(str(key)) or normalized_key in _TOKEN_KEYS:
                     result[str(key)] = "<redacted>"
                 else:
                     result[str(key)] = self._redact(item, depth + 1)
