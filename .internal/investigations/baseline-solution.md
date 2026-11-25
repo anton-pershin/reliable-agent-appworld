@@ -33,6 +33,7 @@ The solution repository contains the constitution and terminology but no impleme
 - The validator starts `python -m reliable_agent_appworld` once per episode and exchanges versioned JSON Lines messages over standard input/output. It owns AppWorld code execution and private scoring.
 - AppWorld exposes one `execute_code` tool backed by a stateful Python shell. Public task data includes the instruction, supervisor information, and application descriptions; private evaluation data must not reach the solution.
 - The registered AppWorld profile covers unperturbed repeated episodes and evaluates overall success, error awareness, consistency, and timely responses. Numeric thresholds and the full population are obtained from the validator rather than duplicated here.
+- The existing local validation endpoints on ports 8678–8680 do not expose the `appworld` profile; a separate current validation instance is required for our runs ([local discovery](evidence/baseline-local-services.json)).
 
 #### Tentative or unresolved
 
@@ -47,6 +48,7 @@ The solution repository contains the constitution and terminology but no impleme
 | ID | Idea or question | Context | Result and evidence links | Decision and rationale |
 |----|------------------|---------|---------------------------|------------------------|
 | E1 | What exact process, message, tool, timing, and evidence contract must the baseline satisfy? | C1 | Pending | Pending |
+| E2 | Can an existing local validation service run the AppWorld profile? | C1 | All three discovered endpoints returned HTTP 404 for AppWorld configuration discovery: [local discovery](evidence/baseline-local-services.json). | Leave those services unchanged. Start a separate current AppWorld-capable instance when the implementation is ready for contract tests. |
 
 ### Next candidates
 
