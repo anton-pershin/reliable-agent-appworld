@@ -85,4 +85,4 @@ The solution repository contains the constitution and terminology but no real ag
 
 ### Linked specs
 
-- None yet.
+- `../specs/01-baseline-agent-general-spec.md` defines the initial reactive implementation, local acceptance checks, and model-backed smoke/dev diagnostics.
