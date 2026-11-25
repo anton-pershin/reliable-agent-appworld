@@ -101,6 +101,8 @@ class JsonLinesTransport:
         self.max_total_bytes = max_total_bytes
         self.final_reserve_bytes = final_reserve_bytes
         self.bytes_written = 0
+        self._poisoned = False
+        self._pending_writes: set[asyncio.Task] = set()
         self._write_lock = asyncio.Lock()
         self._read_buffer = bytearray()
         self._stdin_fd = _file_descriptor(self.stdin)
@@ -238,30 +240,59 @@ class JsonLinesTransport:
         await asyncio.to_thread(write)
         self.bytes_written += len(encoded)
 
+    @property
+    def poisoned(self) -> bool:
+        return self._poisoned
+
     async def _serialized_write(self, message: BaseModel, timeout: float | None) -> None:
+        if self._poisoned:
+            raise ProtocolError("Protocol stream is poisoned by a failed partial write")
         started = time.monotonic()
         if timeout is not None:
             await asyncio.wait_for(self._write_lock.acquire(), timeout)
         else:
             await self._write_lock.acquire()
         remaining = None if timeout is None else max(0.0, timeout - (time.monotonic() - started))
-        write_task = asyncio.create_task(self._write(message))
-        try:
-            if remaining is not None:
-                await asyncio.wait_for(asyncio.shield(write_task), remaining)
-            else:
-                await asyncio.shield(write_task)
-        except (TimeoutError, asyncio.CancelledError):
-            if write_task.done():
+        starting_bytes = self.bytes_written
+        if self._stdout_fd is not None:
+            try:
+                if remaining is not None:
+                    await asyncio.wait_for(self._write(message), remaining)
+                else:
+                    await self._write(message)
+            except BaseException:
+                if self.bytes_written != starting_bytes:
+                    self._poisoned = True
+                raise
+            finally:
                 self._write_lock.release()
-            else:
-                write_task.add_done_callback(lambda _: self._write_lock.release())
-            raise
-        except BaseException:
+            return
+
+        write_task = asyncio.create_task(self._write(message))
+        self._pending_writes.add(write_task)
+
+        def finish(task: asyncio.Task) -> None:
+            self._pending_writes.discard(task)
+            error = None if task.cancelled() else task.exception()
+            if task.cancelled() or (
+                error is not None
+                and (self.bytes_written != starting_bytes or not isinstance(error, ProtocolError))
+            ):
+                self._poisoned = True
             self._write_lock.release()
-            raise
+
+        write_task.add_done_callback(finish)
+        if remaining is not None:
+            await asyncio.wait_for(asyncio.shield(write_task), remaining)
         else:
-            self._write_lock.release()
+            await asyncio.shield(write_task)
+
+    async def drain(self, timeout: float = 1.0) -> None:
+        pending = list(self._pending_writes)
+        if pending:
+            await asyncio.wait_for(
+                asyncio.gather(*pending, return_exceptions=True), timeout=timeout
+            )
 
     async def write_actions(
         self, call_id: str, actions: Sequence[ActionRequest], timeout: float | None = None

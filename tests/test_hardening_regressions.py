@@ -253,6 +253,65 @@ def test_controlled_failure_reason_is_bounded():
     assert len(controlled_failure("x" * 10000).reason) <= 1000
 
 
+async def test_partial_failed_write_poisons_transport_and_blocks_final():
+    transport = JsonLinesTransport(stdin=io.BytesIO(), stdout=io.BytesIO())
+    transport._stdout_fd = 1
+
+    async def partial_write(message):
+        transport.bytes_written += 5
+        raise TimeoutError("stalled after a short write")
+
+    transport._write = partial_write
+    with pytest.raises(TimeoutError):
+        await transport.write_actions("call-1", [action().action], timeout=1)
+    assert transport.poisoned
+
+    before = transport.bytes_written
+    with pytest.raises(ProtocolError, match="poisoned"):
+        await transport.write_final(final(False), timeout=1)
+    assert transport.bytes_written == before
+
+
+def test_stderr_proxy_marker_fits_every_natural_capacity_boundary():
+    marker = b'{"event":"stderr_limit_reached"}\n'
+    for capacity in range(200, 200 + len(marker) + 3):
+        raw = io.StringIO()
+        proxy = BoundedRedactingStream(raw, max_bytes=capacity)
+        proxy.write("x" * (capacity - len(marker)))
+        proxy.write("overflow")
+        assert raw.getvalue().encode().endswith(marker)
+        assert len(raw.getvalue().encode()) <= capacity
+
+
+def test_cancelled_real_pipe_write_has_no_pending_transport_task():
+    read_fd, write_fd = os.pipe()
+    os.set_blocking(write_fd, False)
+    try:
+        while True:
+            try:
+                os.write(write_fd, b"x" * 4096)
+            except BlockingIOError:
+                break
+        with os.fdopen(write_fd, "wb", closefd=False) as output:
+            transport = JsonLinesTransport(stdin=io.BytesIO(), stdout=output)
+
+            async def cancel_write():
+                operation = asyncio.create_task(
+                    transport.write_actions("call-1", [action().action])
+                )
+                await asyncio.sleep(0.02)
+                operation.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await operation
+                await transport.drain(timeout=0.1)
+                assert not transport._pending_writes
+
+            asyncio.run(cancel_write())
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+
+
 def test_real_pipe_write_timeout_does_not_leave_pending_io():
     read_fd, write_fd = os.pipe()
     os.set_blocking(write_fd, False)

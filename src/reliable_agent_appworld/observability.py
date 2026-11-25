@@ -22,6 +22,8 @@ _JSON_SECRET = re.compile(
 )
 _BEARER = re.compile(r"(?i)bearer\s+[a-z0-9._~+/=-]+")
 _LOG_MARKER_RESERVE = len(b'{"event":"log_limit_reached"}\n')
+_STDERR_LIMIT_MARKER = b'{"event":"stderr_limit_reached"}\n'
+_STDERR_MARKER_RESERVE = len(_STDERR_LIMIT_MARKER)
 
 
 def _environment_secrets() -> set[str]:
@@ -179,9 +181,9 @@ class BoundedRedactingStream:
                 return original_length
             sanitized = _sanitize_string(str(text), self._secrets)
             encoded = sanitized.encode("utf-8", errors="replace")
-            if self.bytes_written + len(encoded) > self.max_bytes - _LOG_MARKER_RESERVE:
+            if self.bytes_written + len(encoded) > self.max_bytes - _STDERR_MARKER_RESERVE:
                 self._limited = True
-                marker = b'{"event":"stderr_limit_reached"}\n'
+                marker = _STDERR_LIMIT_MARKER
                 if self.bytes_written + len(marker) <= self.max_bytes:
                     self.stream.write(marker.decode())
                     self.bytes_written += len(marker)

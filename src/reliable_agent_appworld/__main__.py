@@ -83,7 +83,7 @@ async def run_episode(config: AgentConfig) -> None:
             error_message=str(exc),
             remaining_seconds=deadline.remaining(),
         )
-        if deadline.remaining() > 0:
+        if deadline.remaining() > 0 and not transport.poisoned:
             fallback = controlled_failure("Controlled finalization after protocol delivery failure")
             await transport.write_final(fallback, timeout=deadline.remaining())
 

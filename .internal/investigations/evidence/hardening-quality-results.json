@@ -13,11 +13,14 @@
     "History trimming respects its exact configured size and preserves latest evidence.",
     "Protocol version/type fields are required and inner AppWorld JSON rejects nonfinite numbers.",
     "Final self-assessment and delivery outcomes are logged; malformed public text output is retained within privacy limits.",
+    "Failed partial writes poison the transport and prohibit corrupting final/fallback messages; zero-byte validation failures remain finalizable.",
+    "Real-fd cancellation cancels and awaits physical writes, with bounded drain for fallback I/O.",
+    "The stderr proxy reserves the exact byte length of its suppression marker across capacity boundaries.",
     "CI covers Python 3.11-3.13, Pydantic AI 2.66/2.74, built-wheel episodes, and both entry points."
   ],
   "tests": {
-    "pydantic_ai_2_66_passed": 164,
-    "pydantic_ai_2_74_passed": 164,
+    "pydantic_ai_2_66_passed": 167,
+    "pydantic_ai_2_74_passed": 167,
     "new_fault_injection_coverage": [
       "permanently stalled observation with stdin left open",
       "full pipe write timeout",
@@ -29,7 +32,10 @@
       "process-wide stderr cap",
       "persistent no-evidence completion",
       "exact multibyte history bound",
-      "malformed inner AppWorld input"
+      "malformed inner AppWorld input",
+      "partial-write poisoning and final fail-closed behavior",
+      "cancelled real pipe writes without pending tasks",
+      "all stderr suppression-marker capacity boundaries"
     ],
     "ruff": "All checks passed"
   },
