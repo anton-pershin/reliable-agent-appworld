@@ -65,6 +65,7 @@ The solution repository contains the constitution and terminology but no real ag
 | E8 | What can be reused from the related reliable-agent without importing PDDL policy or known failure modes? | C1 | Source, tests, review history, and validation records identified reusable contracts/runner/protocol/model/logging patterns and specific race/deadline/log-size cautions: [reuse findings](evidence/reliable-agent-reuse-findings.md). | Port minimal generic infrastructure with the final-write fix and absolute deadlines. Build a fresh reactive engine and AppWorld prompt; omit planning/voting/formal-goal/transition-learning components. |
 | E9 | What exact A10 model-serving configuration should be qualified? | C1 | Official model/vLLM documentation and prior short-context PDDL evidence support a pinned BF16 Qwen checkpoint, vLLM 0.34.0, 12K initial context, explicit Qwen sampling, and staged concurrency qualification: [serving plan](evidence/qwen-a10-serving-plan.md). | Request an exclusive 24 GiB A10 with Docker/NVIDIA access and Hugging Face connectivity. Keep the endpoint behind an SSH tunnel; record actual serving identities and treat every capacity flag as provisional until S0 passes. |
 | E10 | How should model-backed candidates be compared without test-set tuning or incomplete-screen bias? | C1 | A staged S0–S6 matrix defines synthetic serving checks, train smoke, dev-only candidate screens, two-repeat confirmation, and eventual full validation: [experiment plan](evidence/baseline-experiment-plan.md). | Use completed prespecified populations and all four criteria when repeats permit. Start with structured decisions and concise ReAct; add fallback/output/prompt complexity only when its gate is triggered. |
+| E11 | Is `a10-oct-22` ready for the planned serving qualification? | C1 | The A10 is idle, CUDA 13.2 is reported, passwordless sudo works, and the exact Qwen revision is cached. Docker is absent and only 4.3 GiB is free. Existing vLLM 0.32.0 was left unchanged: [preflight](evidence/a10-preflight.json). | Reuse the cached model and existing assets where appropriate. Complete the disk audit and request approval before any cleanup; do not require the originally assumed 100 GB because the model is already present. |
 
 ### Next candidates
 
@@ -73,7 +74,9 @@ The solution repository contains the constitution and terminology but no real ag
 - [x] Study official AppWorld examples and public task/API mechanics to identify the smallest general-purpose interaction loop.
 - [x] Select interactive code ReAct as the provisional baseline and prove the real validator lifecycle with a no-op contract probe.
 - [x] Define the exact A10 launch configuration and staged train/dev decision gates.
-- [ ] Obtain A10 access; qualify model identity, sampling, structured output, context, and concurrency.
+- [x] Obtain A10 access and complete initial GPU/host inventory.
+- [ ] Qualify model identity, sampling, structured output, context, and concurrency.
+- [ ] Complete the A10 disk audit and obtain approval for specific cleanup candidates before deleting anything.
 - [ ] Compare structured decisions versus fenced-code extraction and concise prompting versus one fixed public demonstration on prespecified public partial-validation tasks.
 - [ ] Select prompt/history/self-assessment settings from completed repeat populations, then create the implementation spec with explicit decision gates.
 

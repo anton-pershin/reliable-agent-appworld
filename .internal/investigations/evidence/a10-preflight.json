@@ -1,0 +1,41 @@
+{
+  "observed_on": "2026-11-25",
+  "server_alias": "a10-oct-22",
+  "gpu": {
+    "name": "NVIDIA A10",
+    "memory_mib": 23028,
+    "memory_used_mib": 0,
+    "driver": "595.99.02",
+    "cuda_version_reported": "13.2",
+    "running_gpu_processes": 0
+  },
+  "host": {
+    "kernel": "6.8.0-147-generic",
+    "ram_gib": 31,
+    "passwordless_sudo": true,
+    "docker_installed": false,
+    "root_filesystem": {
+      "size": "150G",
+      "used": "139G",
+      "available": "4.3G",
+      "use_percent_from_df_h": 98
+    }
+  },
+  "existing_assets": {
+    "qwen_model": "Qwen/Qwen3.5-9B",
+    "qwen_cached_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+    "existing_python": "3.12.15",
+    "existing_vllm": "0.32.0",
+    "existing_torch": "2.13.0",
+    "existing_transformers": "5.19.0",
+    "existing_environment_was_modified": false
+  },
+  "cleanup_candidates_pending_audit": [
+    {
+      "path": "/home/ubuntu/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb",
+      "size_bytes": 4138345734,
+      "reason": "Old local CUDA repository installer; the current driver is already operational. Not removed."
+    }
+  ],
+  "deletion_performed": false
+}
