@@ -1,0 +1,39 @@
+{
+  "observed_on": "2026-11-25",
+  "server_alias": "a10-oct-22",
+  "approved_scopes": ["C1", "C2", "C3"],
+  "deleted": {
+    "orphan_huggingface_blob_count": 12,
+    "orphan_huggingface_blob_bytes": 33110240584,
+    "associated_metadata_files": 24,
+    "pip_cache_bytes": 7258243658,
+    "cuda_installer_bytes": 4138345734,
+    "total_payload_bytes": 44506829976,
+    "total_payload_gib": 41.45
+  },
+  "safety": {
+    "exact_approved_blob_list_revalidated": true,
+    "no_current_model_references_to_deleted_blobs": true,
+    "all_current_cached_models_preserved": true,
+    "all_existing_environments_preserved": true
+  },
+  "verification": {
+    "root_filesystem_after": {
+      "size": "150G",
+      "used": "97G",
+      "available": "47G",
+      "use_percent": 68
+    },
+    "home_cache_after": "59G",
+    "broken_snapshot_symlinks_by_model": {
+      "models--Qwen--Qwen3-0.6B": 0,
+      "models--Qwen--Qwen3.5-9B": 0,
+      "models--google--gemma-3-4b-it": 0,
+      "models--mistralai--Ministral-3-8B-Instruct-2512": 0,
+      "models--mssfj--Qwen3.5-9B-GPTQ-INT8": 0
+    },
+    "existing_a10_ml_pip_check": "No broken requirements found.",
+    "gpu_driver_after": "595.99.02",
+    "gpu_memory_used_mib_after": 0
+  }
+}
