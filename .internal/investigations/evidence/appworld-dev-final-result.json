@@ -1,0 +1,28 @@
+{
+  "run_id": "20261125T125107-110408Z-3a9489d3405b",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T125107-110408Z-3a9489d3405b",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "5acf8f267f9984c8f87f22ebea13a7dd9befdb36",
+  "solution_overrides": "--log-level ERROR --episode-timeout-seconds 90 --final-response-reserve-seconds 10 --model-timeout-seconds 30 --action-budget 30",
+  "configuration": {"dev_scenarios": ["50e1ac9", "fac291d"], "task_variants": 6, "repeats": 2, "planned_episodes": 12, "criteria": ["AC1", "AC2", "AC3", "AC7"]},
+  "criteria": {
+    "AC1": {"status": "valid", "overall_success_rate": 0.0},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 1.0},
+    "AC3": {"status": "accepted", "repeat_range": 0.0},
+    "AC7": {"status": "accepted", "timely_final_response_rate": 1.0}
+  },
+  "episodes": {
+    "completed_records": 12,
+    "infrastructure_failures": 0,
+    "successful_tasks": 0,
+    "likely_incorrect_true": 12,
+    "all_controlled_unsuccessful_finals": true,
+    "mean_actions": 6.6667,
+    "mean_episode_seconds": 81.6177,
+    "total_timed_episode_seconds": 979.4119
+  },
+  "private_evaluation_reports_inspected": false,
+  "submission_note": "The first queued request was rejected before run allocation because active capacity was occupied. It was retried successfully after the previous dev run completed; the rejected request is not a validation run.",
+  "decision": "Final reviewed revision satisfies the spec's repeated dev diagnostic. Submit the unchanged registered full profile with the same bounded solution overrides; retain the zero-success quality gap and do not call the implementation accepted unless every full criterion is accepted."
+}
