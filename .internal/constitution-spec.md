@@ -16,7 +16,7 @@ https://github.com/anton-pershin/reliable-agent-appworld — management and impl
 
 #### 1.4. Architecture type
 
-TBD
+Layered architecture. Separate integration interfaces, agent decision logic, and access to models and tools. The decision logic must not depend on AppWorld, a specific execution environment, or the validation service.
 
 #### 1.5. Execution mode
 
@@ -135,14 +135,60 @@ Append every completed, failed, or aborted full-validation run to `.internal/val
 
 ### 4. Insight
 
-Up to further research.
+The internal reliability mechanisms needed to satisfy the requirements remain subject to further research.
 
 ### 5. Overall solution design
 
 #### 5.1. High-level design
 
-TBD
+Use three layers: integration interfaces, agent decision logic, and model and tool access. A calling system can request one decision at a time or use the task runner for a complete episode. For validation, the interaction bridge implements the service's versioned JSON Lines protocol on standard input and output, while standard error carries logs. The calling system owns AppWorld code execution and private scoring; neither is part of the decision engine.
+
+```mermaid
+flowchart TD
+  caller[Calling system]
+  subgraph integration[Integration interfaces]
+    bridge[Interaction bridge]
+    runner[Task runner]
+  end
+  subgraph decisions[Agent decision logic]
+    engine[Stateful decision engine]
+  end
+  subgraph access[Model and tool access]
+    model[Model client]
+    tools[Tool execution interface]
+  end
+  provider[Model provider]
+  environment[Execution environment]
+
+  caller -->|request next decision| bridge
+  bridge -->|action or final response| caller
+  caller -->|run complete task| runner
+  runner -->|final response or termination| caller
+  bridge -->|observations and task state| engine
+  engine -->|action or response| bridge
+  runner -->|observations and task state| engine
+  engine -->|action or response| runner
+  engine -->|generation requests| model
+  model -->|generation results| engine
+  model -->|provider requests| provider
+  provider -->|model responses| model
+  runner -->|execute requested actions| tools
+  tools -->|observations or failures| runner
+  tools -->|execute operations| environment
+  environment -->|observations or failures| tools
+```
+
+When an external system controls the interaction loop, it executes the actions returned through the interaction bridge and supplies the resulting observations. When the task runner controls the loop, it executes actions through the tool execution interface. The internal reliability mechanisms of the decision engine remain subject to further research.
 
 #### 5.2. Core components
 
-TBD
+- **Integration interfaces**
+  - **Interaction bridge:** translates the calling system's task descriptions, observations, action requests, and final-response formats to and from the decision engine's contracts. It implements the external protocol without adding a separate decision policy.
+  - **Task runner:** controls complete task execution when the calling system does not own the interaction loop. It passes observations to the decision engine, executes requested actions through the tool execution interface, and returns the final response or termination outcome.
+- **Agent decision logic**
+  - **Stateful decision engine:** maintains task state and produces the next action, response, or completion declaration with self-assessment. It uses the model client for generation. Its internal reliability mechanisms remain subject to further research.
+- **Model and tool access**
+  - **Model client:** provides configurable access to model providers through Pydantic AI, separate from decision logic and interaction protocols.
+  - **Tool execution interface:** connects requested actions to an execution environment and returns observations or failures to the task runner. When the calling system owns execution, it supplies these results through the interaction bridge instead.
+
+The calling system, model provider, and execution environment are external to these layers.
