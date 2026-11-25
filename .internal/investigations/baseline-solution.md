@@ -17,7 +17,7 @@ Select, implement, and evaluate a credible baseline agent for the requirements i
 
 ### Current state
 
-The solution repository contains the constitution and terminology but no implementation. The validation service has an AppWorld profile and a documented per-episode process protocol. A dedicated current validator instance is running locally for configuration discovery, but no episodes have been submitted. There is no measured solution baseline yet, so task success, error awareness, consistency, latency, and resource use remain unknown.
+The solution repository contains the constitution and terminology but no implementation. The validation service has an AppWorld profile and a documented per-episode process protocol. A dedicated current validator instance is running locally, its complete configuration is discoverable, and its independently provisioned real runtime passed the no-op/isolation/evaluation smoke test. No solution episodes have been submitted. Task success, error awareness, consistency, latency, and solution resource use remain unknown.
 
 ### Contexts
 
@@ -25,6 +25,7 @@ The solution repository contains the constitution and terminology but no impleme
 |----|-------------------------|------------------|-------------------------|----------|
 | C1 | No implementation; constitution at the merged project baseline | `agent-validation` AppWorld support at commit `cc09c57` during initial contract review | Local CPU-only investigation host; A10 model server not yet provisioned | No solution measurements |
 | C2 | No implementation; configuration discovery only | Current validator commit `cc09c57` serving `appworld` at `127.0.0.1:8681` | Local CPU-only investigation host; no AppWorld episodes or model provider | Successful discovery, no solution measurements |
+| C3 | No solution implementation; validator's real runtime smoke only | Validator commit `cc09c57` with independently provisioned pinned AppWorld runtime/data | Local CPU-only investigation host; Landlock-enforced worker and separate evaluator; no model provider | Provisioning and real no-op/isolation/evaluation smoke passed |
 
 ### Current understanding
 
@@ -35,6 +36,7 @@ The solution repository contains the constitution and terminology but no impleme
 - AppWorld exposes one `execute_code` tool backed by a stateful Python shell. Public task data includes the instruction, supervisor information, and application descriptions; private evaluation data must not reach the solution.
 - The registered AppWorld profile covers unperturbed repeated episodes and evaluates overall success, error awareness, consistency, and timely responses. Numeric thresholds and the full population are obtained from the validator rather than duplicated here.
 - The existing local validation endpoints on ports 8678–8680 do not expose the `appworld` profile; a separate current validation instance is required for our runs ([local discovery](evidence/baseline-local-services.json)).
+- The independently provisioned AppWorld runtime has the expected task counts, and the validator's real smoke test passed initialization, no-op execution, private-data read denial, separate evaluation, evidence retention, and cleanup without a model provider ([runtime smoke](evidence/appworld-runtime-smoke.json)).
 
 #### Tentative or unresolved
 
@@ -52,6 +54,7 @@ The solution repository contains the constitution and terminology but no impleme
 | E2 | Can an existing local validation service run the AppWorld profile? | C1 | All three discovered endpoints returned HTTP 404 for AppWorld configuration discovery: [local discovery](evidence/baseline-local-services.json). | Leave those services unchanged. Start a separate current AppWorld-capable instance when the implementation is ready for contract tests. |
 | E3 | Can the current validator expose its authoritative AppWorld configuration through the documented HTTP boundary? | C2 | Discovery succeeded and returned a complete editable configuration plus matching schema: [discovery summary](evidence/appworld-discovery-summary.json). | Use this dedicated service for investigation-stage discovery. Select partial configurations by modifying the complete returned copy; do not duplicate its thresholds in solution documentation. |
 | E4 | Can the pinned AppWorld runtime be provisioned from the detached current source without an explicit source-path override? | C2 | No; the first attempt failed before creating a runtime because Python imported the older installed PDDL-only validator: [attempt 1](evidence/appworld-provisioning-attempt1.json). | Treat this as an invocation error, not a validator defect. Repeat with `PYTHONPATH` pinned to the detached current source and verify imported module paths. |
+| E5 | Does the corrected provisioning produce a usable, isolated real AppWorld runtime? | C3 | Provisioning succeeded with the exact split counts, and `tests/test_appworld_real.py` passed: [runtime smoke](evidence/appworld-runtime-smoke.json). | Use this runtime for local protocol and partial-validation experiments. No GPU is needed for the contract harness; keep the public/private execution boundary unchanged. |
 
 ### Next candidates
 
