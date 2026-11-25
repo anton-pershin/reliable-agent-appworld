@@ -1,0 +1,12 @@
+{
+  "observed_on": "2026-11-25",
+  "operation": "Provision pinned AppWorld runtime and data",
+  "validator_source": "/tmp/opencode/agent-validation-appworld",
+  "validator_commit": "cc09c57",
+  "status": "failed_before_provisioning",
+  "runtime_created": false,
+  "data_root_created": false,
+  "observed_error": "The installed agent_validation.config ValidationProfile rejected AppWorld fields and required PDDL problem fields for all tasks.",
+  "root_cause": "The provisioning process imported /home/tony/reps/github/anton-pershin/agent-validation/src/agent_validation/config.py instead of the current detached AppWorld source. PYTHONPATH was not set for this command.",
+  "correction": "Rerun with PYTHONPATH=/tmp/opencode/agent-validation-appworld/src. A direct import probe then resolved both agent_validation and agent_validation.config to the intended source tree."
+}

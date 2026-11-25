@@ -51,6 +51,7 @@ The solution repository contains the constitution and terminology but no impleme
 | E1 | What exact process, message, tool, timing, and evidence contract must the baseline satisfy? | C1 | Pending | Pending |
 | E2 | Can an existing local validation service run the AppWorld profile? | C1 | All three discovered endpoints returned HTTP 404 for AppWorld configuration discovery: [local discovery](evidence/baseline-local-services.json). | Leave those services unchanged. Start a separate current AppWorld-capable instance when the implementation is ready for contract tests. |
 | E3 | Can the current validator expose its authoritative AppWorld configuration through the documented HTTP boundary? | C2 | Discovery succeeded and returned a complete editable configuration plus matching schema: [discovery summary](evidence/appworld-discovery-summary.json). | Use this dedicated service for investigation-stage discovery. Select partial configurations by modifying the complete returned copy; do not duplicate its thresholds in solution documentation. |
+| E4 | Can the pinned AppWorld runtime be provisioned from the detached current source without an explicit source-path override? | C2 | No; the first attempt failed before creating a runtime because Python imported the older installed PDDL-only validator: [attempt 1](evidence/appworld-provisioning-attempt1.json). | Treat this as an invocation error, not a validator defect. Repeat with `PYTHONPATH` pinned to the detached current source and verify imported module paths. |
 
 ### Next candidates
 
