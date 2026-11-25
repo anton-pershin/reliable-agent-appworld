@@ -40,8 +40,8 @@ class AgentConfig(ContractModel):
     model_timeout_seconds: float = Field(default=120, gt=0, allow_inf_nan=False)
     final_response_reserve_seconds: float = Field(default=25, ge=0, allow_inf_nan=False)
 
-    max_observation_chars: int = Field(default=6000, ge=100)
-    max_history_chars: int = Field(default=20000, ge=1000)
+    max_observation_chars: int = Field(default=12000, ge=100)
+    max_history_chars: int = Field(default=24000, ge=1000)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_payload_chars: int = Field(default=2000, ge=0)
     max_log_bytes: int = Field(default=750_000, ge=1000, le=900_000)

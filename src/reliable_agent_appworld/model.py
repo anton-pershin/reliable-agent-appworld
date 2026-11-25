@@ -130,7 +130,7 @@ class PydanticAIModelClient:
                 ),
                 "history": self.public_history(state),
                 "validation_feedback": state.validation_feedback[-10:],
-                "prompt_version": "react-v1",
+                "prompt_version": "react-v2",
                 "format": "Return ActionDecision or FinalDecision only",
             },
             ensure_ascii=False,

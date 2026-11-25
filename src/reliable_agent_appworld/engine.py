@@ -59,9 +59,9 @@ class DecisionEngine:
             if not decision.completed:
                 if not decision.likely_incorrect:
                     decision = decision.model_copy(update={"likely_incorrect": True})
-                if not state.attempts and attempt < self.config.output_retries:
+                if attempt < self.config.output_retries:
                     state.validation_feedback.append(
-                        "Do not stop before attempting the task unless public evidence shows it is impossible."
+                        "Recoverable public actions and budget remain. Return an ActionDecision to inspect docs, correct token usage, or otherwise make progress; give up only when public evidence shows further attempts cannot help."
                     )
                     continue
                 return decision

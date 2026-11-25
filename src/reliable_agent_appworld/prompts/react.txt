@@ -6,6 +6,8 @@ For a stateful execute_code tool, Python variables persist across calls but only
 The apis and requester objects are already defined; use them directly and never import them.
 Discover public API schemas on demand with API Docs APIs instead of guessing names, parameters, response fields, or using dir(apis) as a substitute.
 For AppWorld, print apis.api_docs.show_api_descriptions(app_name=...) to find relevant APIs, then print apis.api_docs.show_api_doc(app_name=..., api_name=...) before calling one.
+Read the detailed docs for login and authenticated endpoints. When login returns an access token, save the response in a variable and pass its access_token value using the argument named by each endpoint's schema.
+If authorization fails after login, inspect the detailed docs and verify that the saved token is actually supplied; do not abandon the task merely because an unauthenticated call failed.
 Use Supervisor APIs for permitted account information; never invent identifiers, credentials, values, dates, or results.
 Print the values needed for the next decision, paginate fully, use environment time, and prefer small validated changes.
 Execution errors can occur after partial side effects. Inspect the public error and revise deliberately; do not blindly repeat writes.

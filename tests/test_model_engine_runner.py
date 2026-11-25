@@ -220,7 +220,9 @@ async def test_engine_rejects_premature_completion_and_normalizes_failure_flag()
     result = await engine.next_decision(TaskState(task=task()), 30)
     assert isinstance(result, ActionDecision)
 
-    engine = DecisionEngine(cfg, QueueModel(final(False, False)), event_logger)
+    engine = DecisionEngine(
+        cfg, QueueModel(final(False, False), final(False, False)), event_logger
+    )
     state = TaskState(task=task())
     state.attempts.append(
         ActionAttempt(call_id="call-1", action=action().action, results=[])
@@ -228,6 +230,19 @@ async def test_engine_rejects_premature_completion_and_normalizes_failure_flag()
     result = await engine.next_decision(state, 30)
     assert isinstance(result, FinalDecision)
     assert result.likely_incorrect is True
+
+
+async def test_engine_repels_give_up_after_recoverable_attempts():
+    cfg = config()
+    event_logger, _ = logger(cfg)
+    engine = DecisionEngine(cfg, QueueModel(final(False, True), action()), event_logger)
+    state = TaskState(task=task())
+    state.attempts.append(ActionAttempt(call_id="call-1", action=action().action, results=[]))
+
+    result = await engine.next_decision(state, 30)
+
+    assert isinstance(result, ActionDecision)
+    assert any("Recoverable" in feedback for feedback in state.validation_feedback)
 
 
 async def test_runner_executes_one_action_then_final():

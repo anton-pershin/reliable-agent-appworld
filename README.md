@@ -40,7 +40,8 @@ Important defaults:
 | Internal episode budget | `285` seconds |
 | Action budget | `50` single-action calls |
 | Final-response reserve | `25` seconds |
-| Public history budget | `20,000` characters |
+| Individual observation budget | `12,000` characters |
+| Public history budget | `24,000` characters |
 | Maximum log bytes | `750,000` |
 
 No model seed is configured. Model generation, retries, repairs, action execution, and final delivery share an absolute episode deadline. Controlled failure responses use `completed=false` and `likely_incorrect=true`.
