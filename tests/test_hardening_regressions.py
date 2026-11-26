@@ -326,6 +326,7 @@ async def test_runner_enforces_timeout_for_executor_that_ignores_it():
         model_retries=0,
         episode_timeout_seconds=0.15,
         final_response_reserve_seconds=0.05,
+        decision_reserve_seconds=0,
     )
     event_logger, _ = logger(config)
     engine = DecisionEngine(config, QueueModel(action()), event_logger)
@@ -385,6 +386,9 @@ async def test_final_delivery_uses_remaining_shared_deadline(monkeypatch):
                 model_retries=0,
                 episode_timeout_seconds=0.12,
                 final_response_reserve_seconds=0.04,
+                decision_reserve_seconds=0,
+                bootstrap_discovery=False,
+                automatic_completion=False,
             )
         )
     finally:
@@ -532,6 +536,9 @@ def test_stalled_observation_still_delivers_final_and_exits_with_stdin_open():
             "3",
             "--final-response-reserve-seconds",
             "0.25",
+            "--decision-reserve-seconds",
+            "0",
+            "--no-bootstrap-discovery",
         ],
         cwd=root,
         env=env,

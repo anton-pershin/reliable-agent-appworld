@@ -25,7 +25,7 @@ class FakeProvider:
                 provider.requests.append(payload)
                 tools = payload.get("tools") or []
                 request_number = len(provider.requests)
-                action = request_number in (1, 3)
+                action = request_number == 1
                 fragment = "ActionDecision" if action else "FinalDecision"
                 tool_names = [
                     item.get("function", {}).get("name") or item.get("name", "")
@@ -148,6 +148,27 @@ def readline(process, timeout=15):
         selector.close()
 
 
+def write_observation(process, call_id, output):
+    process.stdin.write(
+        json.dumps(
+            {
+                "protocol_version": 1,
+                "type": "observation",
+                "call_id": call_id,
+                "results": [
+                    {
+                        "status": "ok",
+                        "observation": {"output": output},
+                        "error": None,
+                    }
+                ],
+            }
+        )
+        + "\n"
+    )
+    process.stdin.flush()
+
+
 def public_task():
     return {
         "protocol_version": 1,
@@ -217,61 +238,35 @@ def test_installed_style_subprocess_protocol_has_no_provider_banner():
     try:
         process.stdin.write(json.dumps(public_task()) + "\n")
         process.stdin.flush()
-        raw_action = readline(process)
-        action = ActionsMessage.model_validate_json(raw_action)
-        assert action.call_id == "call-1"
-        assert action.actions[0].name == "execute_code"
-        process.stdin.write(
-            json.dumps(
-                {
-                    "protocol_version": 1,
-                    "type": "observation",
-                    "call_id": action.call_id,
-                    "results": [
-                        {
-                            "status": "ok",
-                            "observation": {"output": "subprocess-ok\n"},
-                            "error": None,
-                        }
-                    ],
-                }
-            )
-            + "\n"
-        )
-        process.stdin.flush()
+        bootstrap = ActionsMessage.model_validate_json(readline(process))
+        assert bootstrap.call_id == "call-1"
+        assert "Deterministic public API onboarding" in bootstrap.actions[0].arguments["code"]
+        write_observation(process, bootstrap.call_id, "Public API schemas\nAuthenticated apps: []\n")
+
+        action = ActionsMessage.model_validate_json(readline(process))
+        assert action.call_id == "call-2"
+        assert action.actions[0].arguments["code"] == "print('subprocess-ok')"
+        write_observation(process, action.call_id, "subprocess-ok\n")
+
         completion_action = ActionsMessage.model_validate_json(readline(process))
-        assert completion_action.call_id == "call-2"
-        assert "complete_task" in completion_action.actions[0].arguments["code"]
-        process.stdin.write(
-            json.dumps(
-                {
-                    "protocol_version": 1,
-                    "type": "observation",
-                    "call_id": completion_action.call_id,
-                    "results": [
-                        {
-                            "status": "ok",
-                            "observation": {"output": "Marked the active task complete.\n"},
-                            "error": None,
-                        }
-                    ],
-                }
-            )
-            + "\n"
+        assert completion_action.call_id == "call-3"
+        completion_code = completion_action.actions[0].arguments["code"]
+        assert "complete_task()" in completion_code
+        write_observation(
+            process, completion_action.call_id, "Marked the active task complete.\n"
         )
-        process.stdin.flush()
         final = FinalMessage.model_validate_json(readline(process))
         assert final.completed is True
         assert final.likely_incorrect is False
         assert process.wait(timeout=15) == 0
         assert process.stdout.read() == ""
-        assert len(provider.requests) == 3
+        assert len(provider.requests) == 2
         for request in provider.requests:
             assert request.get("seed") is None
             assert request["top_k"] == 20
             assert request["min_p"] == 0
             assert request["repetition_penalty"] == 1.0
-            assert request.get("max_tokens", request.get("max_output_tokens")) == 4096
+            assert request.get("max_tokens", request.get("max_output_tokens")) == 1024
     finally:
         if process.poll() is None:
             process.kill()

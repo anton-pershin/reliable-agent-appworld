@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 
-from test_subprocess_episode import FakeProvider, public_task, readline
+from test_subprocess_episode import FakeProvider, public_task, readline, write_observation
 
 from reliable_agent_appworld.contracts import ActionsMessage, FinalMessage
 
@@ -39,49 +39,20 @@ def main():
         try:
             process.stdin.write(json.dumps(public_task()) + "\n")
             process.stdin.flush()
+            bootstrap = ActionsMessage.model_validate_json(readline(process))
+            write_observation(process, bootstrap.call_id, "Public API schemas\n")
             action = ActionsMessage.model_validate_json(readline(process))
-            process.stdin.write(
-                json.dumps(
-                    {
-                        "protocol_version": 1,
-                        "type": "observation",
-                        "call_id": action.call_id,
-                        "results": [
-                            {
-                                "status": "ok",
-                                "observation": {"output": "subprocess-ok\n"},
-                                "error": None,
-                            }
-                        ],
-                    }
-                )
-                + "\n"
-            )
-            process.stdin.flush()
+            write_observation(process, action.call_id, "subprocess-ok\n")
             completion_action = ActionsMessage.model_validate_json(readline(process))
-            process.stdin.write(
-                json.dumps(
-                    {
-                        "protocol_version": 1,
-                        "type": "observation",
-                        "call_id": completion_action.call_id,
-                        "results": [
-                            {
-                                "status": "ok",
-                                "observation": {"output": "Marked the active task complete.\n"},
-                                "error": None,
-                            }
-                        ],
-                    }
-                )
-                + "\n"
+            assert "complete_task()" in completion_action.actions[0].arguments["code"]
+            write_observation(
+                process, completion_action.call_id, "Marked the active task complete.\n"
             )
-            process.stdin.flush()
             final = FinalMessage.model_validate_json(readline(process))
             assert final.completed and not final.likely_incorrect
             assert process.wait(timeout=15) == 0
             assert process.stdout.read() == ""
-            assert len(provider.requests) == 3
+            assert len(provider.requests) == 2
         finally:
             if process.poll() is None:
                 process.kill()

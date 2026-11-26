@@ -27,25 +27,25 @@ class AgentConfig(ContractModel):
     model: str = Field(default="openai:qwen/qwen3.5-9b", min_length=1)
     output_mode: Literal["auto", "tool", "text"] = "auto"
     thinking: bool = True
-    bootstrap_discovery: bool = False
-    bootstrap_authentication: bool = False
-    adaptive_bootstrap: bool = False
-    automatic_completion: bool = False
+    bootstrap_discovery: bool = True
+    bootstrap_authentication: bool = True
+    adaptive_bootstrap: bool = True
+    automatic_completion: bool = True
     temperature: float = Field(default=0.6, ge=0, allow_inf_nan=False)
     top_p: float = Field(default=0.95, gt=0, le=1, allow_inf_nan=False)
     top_k: int = Field(default=20, ge=0)
     min_p: float = Field(default=0.0, ge=0, le=1, allow_inf_nan=False)
     presence_penalty: float = Field(default=0.0, ge=-2, le=2, allow_inf_nan=False)
     repetition_penalty: float = Field(default=1.0, gt=0, allow_inf_nan=False)
-    max_output_tokens: int = Field(default=4096, ge=1)
-    model_retries: int = Field(default=2, ge=0, le=10)
+    max_output_tokens: int = Field(default=1024, ge=1)
+    model_retries: int = Field(default=0, ge=0, le=10)
     output_retries: int = Field(default=2, ge=0, le=10)
 
-    episode_timeout_seconds: float = Field(default=285, gt=0, allow_inf_nan=False)
-    action_budget: int = Field(default=50, ge=1)
-    model_timeout_seconds: float = Field(default=120, gt=0, allow_inf_nan=False)
-    final_response_reserve_seconds: float = Field(default=25, ge=0, allow_inf_nan=False)
-    decision_reserve_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
+    episode_timeout_seconds: float = Field(default=180, gt=0, allow_inf_nan=False)
+    action_budget: int = Field(default=30, ge=1)
+    model_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False)
+    final_response_reserve_seconds: float = Field(default=15, ge=0, allow_inf_nan=False)
+    decision_reserve_seconds: float = Field(default=35, ge=0, allow_inf_nan=False)
 
     max_observation_chars: int = Field(default=12000, ge=100)
     max_history_chars: int = Field(default=24000, ge=1000)
