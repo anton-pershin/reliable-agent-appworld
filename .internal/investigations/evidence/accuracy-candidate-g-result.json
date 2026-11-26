@@ -1,0 +1,37 @@
+{
+  "run_id": "20261126T090708-416167Z-2aa2088a2175",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T090708-416167Z-2aa2088a2175",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "3ed6d57f2e2c74c80425aa2b8930ea05b0add703",
+  "candidate": "G: discovery bootstrap + automatic verified completion, original concise prompt, thinking, 180-second episode",
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.16666666666666666},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 1.0},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 6,
+    "successes": 1,
+    "successful_task_id": "b119b1f_1",
+    "successful_episode_id": "137436b19d3c468581c67074cc0b0c0d",
+    "completed_true": 1,
+    "mean_actions": 3.5,
+    "mean_seconds": 140.3046,
+    "model_request_timeout_stops": 3,
+    "runner_timeout_stops": 2
+  },
+  "successful_public_trace": [
+    "The agent logged in, iterated previous_song/show_current_song four times, and observed Luna Starlight's song Siren's Call.",
+    "Its first completion call was unprinted and supplied an answer despite the action-only objective, so no completion evidence was recognized.",
+    "When the model declared success, automatic completion emitted print(apis.supervisor.complete_task()) with no answer; the public marker was observed and the saved final was released.",
+    "This demonstrates genuine task success and the value of answer semantics plus observed completion, not merely a self-assessment change."
+  ],
+  "other_public_findings": [
+    "Bootstrap's large schema output increased context/generation latency: three episodes stopped after model-request timeouts with only two or three actions.",
+    "The answer-query episode did not reach a final completion claim, so automatic completion alone cannot compensate for slow discovery.",
+    "No infrastructure failures occurred and all selected metrics computed."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Retain automatic verified completion as the first validated improvement. Compare final-decision reserve with and without discovery bootstrap before S2; the successful G trace does not establish that bootstrap itself is beneficial."
+}
