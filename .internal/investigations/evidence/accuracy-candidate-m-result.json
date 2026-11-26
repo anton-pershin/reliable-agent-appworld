@@ -1,0 +1,25 @@
+{
+  "run_id": "20261126T100506-368052Z-2a306243a8c2",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T100506-368052Z-2a306243a8c2",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "89496fafee8ae993024377f9f012a819c3624c4f",
+  "candidate": "M: authenticated-action/write-verification revision with rejected 120-second/512-token settings",
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.0},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 1.0},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 6,
+    "successes": 0,
+    "completed_true": 0,
+    "mean_actions": 1.8333,
+    "mean_seconds": 43.4006,
+    "output_token_limit_failures": 1,
+    "model_request_timeout_stops": 5
+  },
+  "interpretation": "The run cannot isolate the value of authenticated-action routing because the already-rejected generation configuration caused early failure in every episode. It provides no basis to revert that general correctness fix.",
+  "private_evaluator_reports_inspected": false,
+  "decision": "Proceed directly to frozen S2 with 180 seconds and 1024 tokens; do not run another S1 variant."
+}
