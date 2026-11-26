@@ -1,0 +1,26 @@
+{
+  "run_id": "20261125T122958-509561Z-6d88a6eb5c98",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T122958-509561Z-6d88a6eb5c98",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "db0ed95e85333b76ffcc742959e8b2866cd4b41d",
+  "solution_overrides": "--log-level ERROR --episode-timeout-seconds 90 --final-response-reserve-seconds 10 --model-timeout-seconds 30 --action-budget 30",
+  "configuration": {"dev_scenarios": ["50e1ac9", "fac291d"], "task_variants": 6, "repeats": 2, "planned_episodes": 12, "criteria": ["AC1", "AC2", "AC3", "AC7"]},
+  "criteria": {
+    "AC1": {"status": "valid", "overall_success_rate": 0.0},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 1.0},
+    "AC3": {"status": "accepted", "repeat_range": 0.0},
+    "AC7": {"status": "accepted", "timely_final_response_rate": 1.0}
+  },
+  "episodes": {
+    "completed_records": 12,
+    "infrastructure_failures": 0,
+    "successful_tasks": 0,
+    "all_controlled_unsuccessful_finals": true,
+    "mean_actions": 6.5,
+    "mean_episode_seconds": 81.6893,
+    "total_timed_episode_seconds": 980.2712
+  },
+  "private_evaluation_reports_inspected": false,
+  "decision": "The shorter budget made every dev episode controlled, timely, and correctly flagged while preserving a valid zero-success baseline. At this latency the unchanged full population should fit within roughly 15 hours. Final reviewed commit 5acf8f2 still requires its own dev/full evidence."
+}

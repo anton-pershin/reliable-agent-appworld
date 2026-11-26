@@ -1,0 +1,25 @@
+{
+  "observed_on": "2026-11-25",
+  "operation": "Read-only HTTP GET of /openapi.json and /profiles/appworld/configuration",
+  "endpoints": [
+    {
+      "base_url": "http://127.0.0.1:8678",
+      "api_title": "Agent validation service",
+      "api_version": "0.1.0",
+      "appworld_configuration_http_status": 404
+    },
+    {
+      "base_url": "http://127.0.0.1:8679",
+      "api_title": "Agent validation service",
+      "api_version": "0.1.0",
+      "appworld_configuration_http_status": 404
+    },
+    {
+      "base_url": "http://127.0.0.1:8680",
+      "api_title": "Agent validation service",
+      "api_version": "0.1.0",
+      "appworld_configuration_http_status": 404
+    }
+  ],
+  "interpretation": "These running services cannot currently be used for AppWorld validation. They were left running and unchanged."
+}

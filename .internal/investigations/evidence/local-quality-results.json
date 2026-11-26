@@ -1,0 +1,30 @@
+{
+  "observed_on": "2026-11-25",
+  "solution_commit": "324649fb66267e54f18fea960680cd8902cb317e",
+  "python": "3.12",
+  "test_matrices": [
+    {"pydantic_ai": "2.66.0", "tests_passed": 148, "real_provider_used": false},
+    {"pydantic_ai": "2.74.0", "tests_passed": 148, "real_provider_used": false}
+  ],
+  "ruff": "All checks passed",
+  "pip_check": "No broken requirements found",
+  "build": {
+    "sdist": "reliable_agent_appworld-0.1.0.tar.gz",
+    "wheel": "reliable_agent_appworld-0.1.0-py3-none-any.whl",
+    "status": "passed",
+    "prompt_resource_packaged": true,
+    "prompt_resource_characters": 1986
+  },
+  "clean_wheel_installation": {
+    "environment": "/tmp/opencode/appworld-wheel-venv",
+    "working_directory": "/tmp/opencode",
+    "pythonpath_used_by_episode": false,
+    "module_help_smoke": "passed",
+    "complete_fake_provider_episode": "passed",
+    "protocol_stdout_only": true,
+    "provider_banner_suppressed": true,
+    "action_observation_final_sequence": "passed",
+    "resolved_pydantic_ai": "2.74.0"
+  },
+  "host_note": "System python3 lacked ensurepip; the existing local Python 3.12 distribution created the test environments without changing system packages."
+}

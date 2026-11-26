@@ -1,0 +1,33 @@
+{
+  "run_id": "20261125T132059-063795Z-2c936467dd77",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T132059-063795Z-2c936467dd77",
+  "profile": "appworld",
+  "validation_scope": "full",
+  "run_status": "completed",
+  "solution_commit": "f8da94d9e8747317eedefed7a0260a69c6b9d606",
+  "solution_overrides": "--log-level ERROR --episode-timeout-seconds 90 --final-response-reserve-seconds 10 --model-timeout-seconds 30 --action-budget 30",
+  "implementation_outcome": "valid but not accepted",
+  "started_at_utc": "2026-11-25T13:20:59.063795Z",
+  "updated_at_utc": "2026-11-26T06:56:53.907687Z",
+  "approximate_wall_hours": 17.6,
+  "population": {
+    "planned_episodes": 630,
+    "observed_episode_records": 630,
+    "successful_episodes": 0,
+    "infrastructure_failures": 0,
+    "final_responses_received": 630,
+    "invalid_error_flags": 0,
+    "likely_incorrect_true": 621,
+    "mean_agent_episode_seconds": 81.3003,
+    "maximum_agent_episode_seconds": 82.6714,
+    "aggregate_agent_episode_hours": 14.2276
+  },
+  "criteria": {
+    "AC1": {"status": "valid", "metric": "VM1/unperturbed_overall_success_rate", "value": 0.0, "acceptance_status": "rejected"},
+    "AC2": {"status": "accepted", "error_flag_precision": 1.0, "error_flag_recall": 0.9857142857142858},
+    "AC3": {"status": "accepted", "repeated_run_overall_success_rate_range": 0.0},
+    "AC7": {"status": "accepted", "timely_final_response_rate": 1.0}
+  },
+  "private_evaluation_reports_inspected": false,
+  "interpretation": "The latest implementation satisfies the spec increment's at-least-valid full-validation gate. It is not an accepted project implementation because overall task success is zero. The investigation remains active for task-quality improvement; zero repeat range must not be interpreted as evidence of useful consistent task solving."
+}

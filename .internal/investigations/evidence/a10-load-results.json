@@ -1,0 +1,22 @@
+{
+  "observed_on": "2026-11-25",
+  "raw_results": [
+    "/tmp/opencode/a10-load-probe.json",
+    "/tmp/opencode/a10-11k-context-probe.json"
+  ],
+  "concurrency": [
+    {"concurrency": 1, "requests": 2, "batch_seconds": 5.58, "request_seconds": [2.821, 2.757]},
+    {"concurrency": 2, "requests": 4, "batch_seconds": 6.373, "request_seconds": [2.969, 3.172, 3.404, 3.174]},
+    {"concurrency": 4, "requests": 8, "batch_seconds": 6.734, "request_seconds": [2.945, 3.37, 3.079, 3.56, 3.351, 3.14, 3.157, 3.169]}
+  ],
+  "all_tool_calls_valid": true,
+  "client_or_server_errors": 0,
+  "oom_or_crash": false,
+  "length_truncation": false,
+  "gpu_memory_used_mib_after_probe": 21157,
+  "large_context": [
+    {"prompt_tokens": 9538, "completion_tokens": 12, "seconds": 2.764, "finish_reason": "stop", "valid_json_schema": true},
+    {"prompt_tokens": 11020, "completion_tokens": 12, "seconds": 3.117, "finish_reason": "stop", "valid_json_schema": true}
+  ],
+  "interpretation": "The 12K serving configuration handled realistic large prompts and short batched requests successfully. This does not establish AppWorld quality or 30-60 minute soak stability."
+}

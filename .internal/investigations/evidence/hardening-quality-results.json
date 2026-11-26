@@ -1,0 +1,50 @@
+{
+  "observed_on": "2026-11-25",
+  "reviewed_base_commit": "606a1bfbbbce353ff12e5d4601d2b5cadd9cab0e",
+  "independent_review_findings_addressed": [
+    "Real protocol stdin/stdout now uses nonblocking file-descriptor I/O with bounded final lock acquisition and delivery.",
+    "One EpisodeDeadline starts immediately after task receipt and covers setup, model, executor, cancellation, and final delivery.",
+    "The runner enforces executor deadlines and propagates cancellation after recording uncertain attempts.",
+    "Structured observation secrets are registered for redaction in later prompts/code/errors; inline password/token fields and dependency stderr are redacted.",
+    "Persistent no-evidence successful finals become controlled unsuccessful responses.",
+    "Malformed inner public input and setup failures enter bounded controlled finalization with a fixed fallback.",
+    "Cumulative stdout has a final reserve; process-wide stderr has a bounded redacting proxy.",
+    "SDK-level retries are disabled so the application owns retry counts and deadlines.",
+    "History trimming respects its exact configured size and preserves latest evidence.",
+    "Protocol version/type fields are required and inner AppWorld JSON rejects nonfinite numbers.",
+    "Final self-assessment and delivery outcomes are logged; malformed public text output is retained within privacy limits.",
+    "Failed partial writes poison the transport and prohibit corrupting final/fallback messages; zero-byte validation failures remain finalizable.",
+    "Real-fd cancellation cancels and awaits physical writes, with bounded drain for fallback I/O.",
+    "The stderr proxy reserves the exact byte length of its suppression marker across capacity boundaries.",
+    "CI covers Python 3.11-3.13, Pydantic AI 2.66/2.74, built-wheel episodes, and both entry points."
+  ],
+  "tests": {
+    "pydantic_ai_2_66_passed": 167,
+    "pydantic_ai_2_74_passed": 167,
+    "new_fault_injection_coverage": [
+      "permanently stalled observation with stdin left open",
+      "full pipe write timeout",
+      "executor ignoring its timeout argument",
+      "runner cancellation",
+      "remaining-time final delivery",
+      "cumulative stdout and final reserve",
+      "serialized prompt/code secret redaction",
+      "process-wide stderr cap",
+      "persistent no-evidence completion",
+      "exact multibyte history bound",
+      "malformed inner AppWorld input",
+      "partial-write poisoning and final fail-closed behavior",
+      "cancelled real pipe writes without pending tasks",
+      "all stderr suppression-marker capacity boundaries"
+    ],
+    "ruff": "All checks passed"
+  },
+  "clean_wheel": {
+    "build": "passed",
+    "pip_check": "No broken requirements found",
+    "installed_wheel_episode": "passed",
+    "python_module_entry_point_outside_checkout": "passed",
+    "console_entry_point_outside_checkout": "passed",
+    "source_path_used": false
+  }
+}

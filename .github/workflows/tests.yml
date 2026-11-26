@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+        pydantic-ai-version: ["2.66.0", "2.74.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install -e '.[dev]'
+          python -m pip install "pydantic-ai==${{ matrix.pydantic-ai-version }}"
+      - name: Tests
+        run: pytest
+      - name: Ruff
+        run: ruff check src tests
+      - name: Build
+        run: python -m build
+      - name: Install built wheel
+        run: python -m pip install --force-reinstall --no-deps dist/reliable_agent_appworld-0.1.0-py3-none-any.whl
+      - name: Wheel episode without source path
+        run: python tests/installed_smoke.py
+      - name: Console and module entry points outside checkout
+        run: |
+          workspace="$(mktemp -d)"
+          cd "$workspace"
+          reliable-agent-appworld --help >/dev/null
+          python -m reliable_agent_appworld --help >/dev/null

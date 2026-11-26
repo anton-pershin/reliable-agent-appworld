@@ -1,0 +1,49 @@
+{
+  "run_id": "20261125T071128-376661Z-347b316f96f5",
+  "run_directory": "/tmp/opencode/appworld-validation-artifacts/20261125T071128-376661Z-347b316f96f5",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "validator_commit": "cc09c57",
+  "solution": {
+    "type": "temporary no-op contract probe",
+    "repository": "/tmp/opencode/appworld-contract-probe-solution",
+    "commit": "1dd90cfeff38ea2e52dfeb8fc58347efeff46e7b",
+    "behavior": "Decode one task message and immediately return completed=false with a valid boolean likely_incorrect=true; perform no actions and attempt no task solution."
+  },
+  "configuration": {
+    "task_id": "82e2fac_1",
+    "repeats": 2,
+    "acceptance_criteria": ["AC1", "AC2", "AC3", "AC7"]
+  },
+  "episodes": [
+    {
+      "repeat": 1,
+      "success": false,
+      "completed": false,
+      "likely_incorrect": true,
+      "error_flag_invalid": false,
+      "action_attempts": 0,
+      "final_response_received": true,
+      "termination_reason": "stopped",
+      "failure_kind": "none"
+    },
+    {
+      "repeat": 2,
+      "success": false,
+      "completed": false,
+      "likely_incorrect": true,
+      "error_flag_invalid": false,
+      "action_attempts": 0,
+      "final_response_received": true,
+      "termination_reason": "stopped",
+      "failure_kind": "none"
+    }
+  ],
+  "criteria": {
+    "AC1": {"status": "valid", "unperturbed_overall_success_rate": 0.0},
+    "AC2": {"status": "accepted", "error_flag_precision": 1.0, "error_flag_recall": 1.0},
+    "AC3": {"status": "accepted", "repeated_run_overall_success_rate_range": 0.0},
+    "AC7": {"status": "accepted", "timely_final_response_rate": 1.0}
+  },
+  "interpretation": "Repository provisioning, installed-module launch, JSON Lines final handling, public AppWorld setup/cleanup, repeated episodes, self-assessment parsing, timing, and all four metric paths worked without infrastructure failures. This is plumbing evidence only, not task-solving evidence."
+}

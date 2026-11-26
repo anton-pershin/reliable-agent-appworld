@@ -1,0 +1,50 @@
+{
+  "observed_on": "2026-11-25",
+  "server_alias": "a10-oct-22",
+  "serving": {
+    "model": "Qwen/Qwen3.5-9B",
+    "served_alias": "qwen/qwen3.5-9b",
+    "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+    "vllm": "0.34.0",
+    "torch": "2.14.0",
+    "transformers": "5.22.2",
+    "python_environment": "/home/ubuntu/venvs/qwen35-appworld",
+    "environment_size": "9.4G",
+    "max_model_len": 12288,
+    "dtype": "bfloat16",
+    "prefix_caching": false,
+    "continuous_batching": true,
+    "seed_override_supplied": false,
+    "health_http": 200,
+    "gpu_memory_used_mib_with_model_idle": 20439,
+    "disk_available_after_install": "37G"
+  },
+  "openai_probe": {
+    "raw_result": "/tmp/opencode/a10-s0-probe-result.json",
+    "tests_completed": 10,
+    "client_errors": 0,
+    "semantic_assertions_passed": true,
+    "cases": {
+      "thinking_generation": {"seconds": 7.866, "finish_reason": "stop", "content_check": "PROBE_OK"},
+      "non_thinking_generation": {"seconds": 0.3, "finish_reason": "stop", "content_check": "PROBE_OK"},
+      "automatic_tool_call": {"seconds": 3.277, "finish_reason": "tool_calls", "valid_execute_code_arguments": true},
+      "named_tool_unicode_multiline": {"seconds": 5.638, "finish_reason": "stop", "valid_unicode_multiline_code": true},
+      "tool_available_but_not_needed": {"seconds": 0.168, "finish_reason": "stop", "no_tool_call": true},
+      "tool_result_continuation": {"seconds": 2.588, "finish_reason": "stop", "answer_check": "42"},
+      "streaming_generation": {"seconds": 0.204, "content_check": "STREAM_OK"},
+      "json_schema_output": {"seconds": 0.819, "finish_reason": "stop", "valid_action_schema": true}
+    },
+    "length_truncation_observed": false
+  },
+  "pydantic_ai_probe": {
+    "version": "2.66.0",
+    "seconds": 4.401,
+    "structured_output": {"kind": "action", "code": "print(20 + 22)"},
+    "input_tokens": 527,
+    "output_tokens": 111,
+    "seed_configured": false,
+    "finding": "Pydantic AI emitted its startup banner on stdout. The solution must suppress it with PYDANTIC_AI_NO_BANNER=1 before Agent creation and retain a subprocess regression test.",
+    "deprecation_finding": "result.usage is a property in 2.66; the implementation uses the property without deprecated invocation."
+  },
+  "qualification_remaining": ["near-context behavior", "concurrency 1/2/4 and soak", "real AppWorld task behavior"]
+}

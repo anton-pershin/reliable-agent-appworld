@@ -1,0 +1,28 @@
+{
+  "run_id": "20261125T111854-666528Z-19438b25db85",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T111854-666528Z-19438b25db85",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "553ad3efc09aa8507777b100ec17d9d21aadf487",
+  "configuration": {"task_id": "82e2fac_1", "repeats": 1, "criteria": ["AC1", "AC2", "AC7"]},
+  "episode": {
+    "success": false,
+    "completed": false,
+    "likely_incorrect": true,
+    "action_attempts": 0,
+    "final_response_received": true,
+    "elapsed_seconds": 18.82043899130076,
+    "termination_reason": "stopped",
+    "failure_kind": "none"
+  },
+  "criteria": {"AC1": "valid", "AC2": "accepted", "AC7": "accepted"},
+  "public_failure_analysis": {
+    "public_instruction": "What is the title of the most-liked song in my Spotify playlists.",
+    "protocol_actions_emitted": 0,
+    "termination_cause": "Pydantic AI exceeded two structured-output retries",
+    "direct_public_prompt_reproduction": "Qwen serialized the nested action field as a JSON object string instead of an object. Pydantic validation reported: action Input should be an object.",
+    "private_evaluation_report_inspected": false
+  },
+  "decision": "Parse internal JSON object strings for action and arguments before strict tool-schema validation. Suppress Pydantic AI banners, keep token-budget fields visible in logs, and clarify preloaded apis/requester plus API Docs discovery. Directly reproducing the same public prompt after the fix returned a valid execute_code action.",
+  "follow_up": "A new pushed commit must repeat S2; this run remains valid negative baseline evidence."
+}

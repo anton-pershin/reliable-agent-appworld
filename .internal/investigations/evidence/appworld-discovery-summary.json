@@ -1,0 +1,31 @@
+{
+  "observed_on": "2026-11-25",
+  "validator_commit": "cc09c57",
+  "base_url": "http://127.0.0.1:8681",
+  "profile": "appworld",
+  "operation": "GET /profiles/appworld/configuration",
+  "result": "success",
+  "configuration": {
+    "benchmark": "appworld",
+    "solution_module": "reliable_agent_appworld",
+    "task_count": 315,
+    "split_counts": {
+      "train": 90,
+      "dev": 57,
+      "test_normal": 168
+    },
+    "full_task_id_count": 315,
+    "full_repeats": 2,
+    "acceptance_criteria": [
+      "AC1",
+      "AC2",
+      "AC3",
+      "AC7"
+    ],
+    "episode_concurrency": 1,
+    "max_interactions": 100,
+    "max_api_calls_per_interaction": 1000,
+    "execution_timeout_seconds": 100
+  },
+  "notes": "The discovery response contained the complete normalized configuration and matching top-level JSON Schema fields. The full response is retained temporarily at /tmp/opencode/appworld-discovery.json; this summary intentionally omits the task catalog and package hashes."
+}

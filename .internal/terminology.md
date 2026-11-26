@@ -36,6 +36,10 @@
 | Task state | Information retained by the agent across interactions within an episode. |
 | Observation | Information supplied to the agent by the calling system or execution environment. |
 | Self-assessment | The answer's confidence, likely incorrect flag, and short reason supplied by the agent before private evaluation results are revealed. |
+| Action decision | A structured model output containing one action request for the runner. |
+| Final decision | A structured model output containing the completion declaration, answer, confidence, `likely_incorrect` flag, and short reason. |
+| Final-response reserve | Time reserved at the end of the episode budget for a controlled final response without another model request. |
+| ReAct | An interaction pattern in which model decisions alternate with environment observations; this baseline uses public code-execution results for subsequent decisions. |
 
 ### Model and tool access
 

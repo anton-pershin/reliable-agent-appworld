@@ -1,0 +1,73 @@
+{
+  "observed_on": "2026-11-25",
+  "server_alias": "a10-oct-22",
+  "root_filesystem": {
+    "size": "150G",
+    "used": "139G",
+    "available_before_cleanup": "4.3G"
+  },
+  "largest_directories": [
+    {"path": "/home/ubuntu", "du_size": "122G"},
+    {"path": "/usr", "du_size": "11G"},
+    {"path": "/var", "du_size": "4.8G"},
+    {"path": "/opt", "du_size": "2.1G"}
+  ],
+  "home_breakdown": [
+    {"path": "/home/ubuntu/.cache", "du_size": "96G"},
+    {"path": "/home/ubuntu/sgl-venv", "du_size": "11G", "exact_file_bytes": 10665638601},
+    {"path": "/home/ubuntu/venvs", "du_size": "9.6G", "exact_file_bytes": 10268656244},
+    {"path": "/home/ubuntu/.local", "du_size": "1.2G"},
+    {"path": "/home/ubuntu/Python-3.11.17", "du_size": "342M"},
+    {"path": "/home/ubuntu/Python-3.12.15", "du_size": "419M"},
+    {"path": "/home/ubuntu/Python-3.13.17", "du_size": "448M"}
+  ],
+  "huggingface_cache": {
+    "du_size": "89G",
+    "shared_blob_bytes": 94634061337,
+    "cached_models": [
+      {"name": "Qwen/Qwen3.5-9B", "referenced_blob_bytes": 19319118862, "keep": true},
+      {"name": "Qwen/Qwen3-0.6B", "referenced_blob_bytes": 1514722982, "keep": true},
+      {"name": "google/gemma-3-4b-it", "referenced_blob_bytes": 8638351522, "keep": true},
+      {"name": "mistralai/Ministral-3-8B-Instruct-2512", "referenced_blob_bytes": 20875119204, "keep": true},
+      {"name": "mssfj/Qwen3.5-9B-GPTQ-INT8", "referenced_blob_bytes": 11176508183, "keep": true}
+    ],
+    "orphan_blobs": {
+      "count": 12,
+      "bytes": 33110240584,
+      "gib": 30.84,
+      "reference_metadata_owners": {
+        "models--Qwen--Qwen3.5-27B-GPTQ-Int4": 11,
+        "models--Qwen--Qwen3.5-35B-A3B-GPTQ-Int4": 1
+      },
+      "missing_reference_targets": 12,
+      "interpretation": "Residual shared blobs from model directories that no longer exist. No current model snapshot symlink references any of these blobs."
+    }
+  },
+  "proposed_cleanup": [
+    {
+      "id": "C1",
+      "path_scope": "The exact 12 orphan Hugging Face blobs and their lock/refs metadata, revalidated immediately before deletion",
+      "bytes": 33110240584,
+      "gib": 30.84,
+      "risk": "low after revalidation; excludes every blob referenced by a current cached model"
+    },
+    {
+      "id": "C2",
+      "path_scope": "/home/ubuntu/.cache/pip",
+      "bytes": 7258243658,
+      "gib": 6.76,
+      "risk": "low; disposable download cache, but later package installs may redownload artifacts"
+    },
+    {
+      "id": "C3",
+      "path_scope": "/home/ubuntu/cuda-repo-ubuntu2404-12-8-local_12.8.1-570.124.06-1_amd64.deb",
+      "bytes": 4138345734,
+      "gib": 3.85,
+      "risk": "low; old installer, current NVIDIA driver remains installed"
+    }
+  ],
+  "proposed_total_gib": 41.45,
+  "expected_available_after_cleanup_gib": 45.75,
+  "other_models_and_environments_preserved": true,
+  "deletion_performed": false
+}

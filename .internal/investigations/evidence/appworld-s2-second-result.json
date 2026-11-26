@@ -1,0 +1,29 @@
+{
+  "run_id": "20261125T112524-493583Z-fe994c9eb0c4",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T112524-493583Z-fe994c9eb0c4",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "324649fb66267e54f18fea960680cd8902cb317e",
+  "configuration": {"task_id": "82e2fac_1", "repeats": 1, "criteria": ["AC1", "AC2", "AC7"]},
+  "episode": {
+    "success": false,
+    "completed": false,
+    "likely_incorrect": true,
+    "action_attempts": 10,
+    "final_response_received": true,
+    "elapsed_seconds": 156.54663550294936,
+    "termination_reason": "stopped",
+    "failure_kind": "none",
+    "confidence": 0.3
+  },
+  "criteria": {"AC1": "valid", "AC2": "accepted", "AC7": "accepted"},
+  "public_trajectory_findings": [
+    "The agent used API Docs and made ten valid protocol actions; structured-output parsing was no longer the blocker.",
+    "It called an authenticated playlist endpoint before login, then successfully logged in but did not save/pass the returned access token.",
+    "It did not inspect detailed login/playlist endpoint schemas after authorization failures.",
+    "The 9,094-character API-description observation exceeded the previous 6,000-character prompt observation budget.",
+    "It voluntarily stopped with recoverable actions and time remaining."
+  ],
+  "private_evaluation_report_inspected": false,
+  "decision": "Keep this as the passing S2 plumbing run but negative task-quality result. Add general token-reuse/detailed-docs guidance, increase bounded observation/history defaults to 12,000/24,000 characters, and reject recoverable give-up decisions for another model turn. Proceed to the prespecified dev diagnostic rather than repeatedly tuning on this train task."
+}
