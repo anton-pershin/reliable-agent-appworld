@@ -166,6 +166,21 @@ for app_name in app_names[:4]:
     else:
         print("Login failed for", app_name, login_response)
 print("Authenticated apps:", sorted(access_tokens))
+if relation_context and "phone" in access_tokens:
+    phone_contacts = apis.phone.search_contacts(
+        access_token=access_tokens["phone"], page_index=0, page_limit=20
+    )
+    print("Public contacts and relationships:")
+    if isinstance(phone_contacts, list):
+        for contact in phone_contacts:
+            print({
+                "name": (contact.get("first_name"), contact.get("last_name")),
+                "email": contact.get("email"),
+                "phone_number": contact.get("phone_number"),
+                "relationships": contact.get("relationships"),
+            })
+    else:
+        print(phone_contacts)
 ''' if authenticate else ""
     code = f'''# Deterministic public API onboarding; no private data is accessed.
 objective = {json.dumps(objective, ensure_ascii=False)}
@@ -217,7 +232,8 @@ mentioned = [
 ]
 if mentioned:
     app_names = mentioned
-if any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent")):
+relation_context = any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent"))
+if relation_context:
     if "phone" not in app_names:
         app_names.append("phone")
 app_names = sorted(set(app_names))

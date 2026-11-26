@@ -179,6 +179,7 @@ def test_appworld_discovery_action_uses_only_public_objective():
     assert "access_tokens = {}" in authenticated_code
     assert 'app_name == "phone"' in authenticated_code
     assert "getattr(apis, app_name).login" in authenticated_code
+    assert "apis.phone.search_contacts" in authenticated_code
     assert 'print("Access token' not in authenticated_code
     assert "public@example.invalid" not in authenticated_code
     assert appworld_discovery_action(TaskState(task=task())) is None
