@@ -338,6 +338,35 @@ async def test_completion_check_defers_and_releases_final_without_extra_model_ca
     assert not model.decisions
 
 
+async def test_optional_bootstrap_action_precedes_model_without_consuming_it():
+    cfg = config()
+    event_logger, _ = logger(cfg)
+    model = QueueModel(final())
+    engine = DecisionEngine(
+        cfg,
+        model,
+        event_logger,
+        bootstrap_action=lambda state: action("print('public docs')"),
+    )
+    state = TaskState(task=task())
+
+    first = await engine.next_decision(state, 30)
+    assert isinstance(first, ActionDecision)
+    assert first.action.arguments["code"] == "print('public docs')"
+    assert len(model.decisions) == 1
+
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-1",
+            action=first.action,
+            results=[ActionResult(status="ok", observation={"output": "public docs"})],
+        )
+    )
+    second = await engine.next_decision(state, 30)
+    assert isinstance(second, FinalDecision)
+    assert not model.decisions
+
+
 async def test_engine_repels_give_up_after_recoverable_attempts():
     cfg = config()
     event_logger, _ = logger(cfg)

@@ -17,6 +17,7 @@ from .protocol import (
     JsonLinesToolExecutor,
     JsonLinesTransport,
     appworld_completion_observed,
+    appworld_discovery_action,
     decode_appworld_public_input,
 )
 from .runner import TaskRunner
@@ -54,7 +55,17 @@ async def run_episode(config: AgentConfig) -> None:
             if any(tool.name == "execute_code" for tool in task.tools)
             else None
         )
-        engine = DecisionEngine(config, model, logger, completion_check=completion_check)
+        engine = DecisionEngine(
+            config,
+            model,
+            logger,
+            completion_check=completion_check,
+            bootstrap_action=(
+                appworld_discovery_action
+                if config.bootstrap_discovery and completion_check is not None
+                else None
+            ),
+        )
         executor = JsonLinesToolExecutor(transport)
         runner = TaskRunner(config, engine, executor, logger)
         final = await runner.run(task, deadline=deadline)

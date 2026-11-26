@@ -26,6 +26,7 @@ class AgentConfig(ContractModel):
     model: str = Field(default="openai:qwen/qwen3.5-9b", min_length=1)
     output_mode: Literal["auto", "tool", "text"] = "auto"
     thinking: bool = True
+    bootstrap_discovery: bool = False
     temperature: float = Field(default=0.6, ge=0, allow_inf_nan=False)
     top_p: float = Field(default=0.95, gt=0, le=1, allow_inf_nan=False)
     top_k: int = Field(default=20, ge=0)
@@ -84,6 +85,11 @@ def load_config(argv: Sequence[str] | None = None) -> AgentConfig:
     parser.add_argument("--output-mode", choices=("auto", "tool", "text"), default=argparse.SUPPRESS)
     parser.add_argument(
         "--thinking", action=argparse.BooleanOptionalAction, default=argparse.SUPPRESS
+    )
+    parser.add_argument(
+        "--bootstrap-discovery",
+        action=argparse.BooleanOptionalAction,
+        default=argparse.SUPPRESS,
     )
     parser.add_argument("--log-level", choices=("DEBUG", "INFO", "WARNING", "ERROR"), default=argparse.SUPPRESS)
     for name in (

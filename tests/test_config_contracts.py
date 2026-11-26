@@ -275,6 +275,8 @@ def test_thinking_defaults_on_and_supports_environment_and_cli_overrides(monkeyp
     assert load_config(["--thinking"]).thinking is True
     monkeypatch.setenv(ENV_PREFIX + "THINKING", "true")
     assert load_config(["--no-thinking"]).thinking is False
+    assert load_config([]).bootstrap_discovery is False
+    assert load_config(["--bootstrap-discovery"]).bootstrap_discovery is True
 
 
 def test_cli_overrides_environment_and_preserves_unspecified_environment_values(monkeypatch):

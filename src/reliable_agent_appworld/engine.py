@@ -18,11 +18,13 @@ class DecisionEngine:
         model: DecisionModel,
         logger: EventLogger,
         completion_check: Callable[[TaskState], bool] | None = None,
+        bootstrap_action: Callable[[TaskState], ActionDecision | None] | None = None,
     ) -> None:
         self.config = config
         self.model = model
         self.logger = logger
         self.completion_check = completion_check
+        self.bootstrap_action = bootstrap_action
 
     def controlled_stop(self, reason: str) -> FinalDecision:
         return controlled_failure(self.logger.redact_text(reason))
@@ -57,6 +59,14 @@ class DecisionEngine:
         deferred = self.release_deferred_final(state)
         if deferred is not None:
             return deferred
+        if not state.attempts and self.bootstrap_action is not None:
+            decision = self.bootstrap_action(state)
+            if decision is not None:
+                self._validate_action(state, decision)
+                self.logger.emit(
+                    "bootstrap_action_selected", action=decision.action.model_dump(mode="json")
+                )
+                return decision
         deadline = time.monotonic() + remaining_seconds
         for attempt in range(self.config.output_retries + 1):
             remaining = deadline - time.monotonic()

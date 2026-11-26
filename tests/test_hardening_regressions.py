@@ -32,6 +32,7 @@ from reliable_agent_appworld.protocol import (
     JsonLinesTransport,
     ProtocolError,
     appworld_completion_observed,
+    appworld_discovery_action,
     decode_appworld_public_input,
 )
 from reliable_agent_appworld.runner import TaskRunner
@@ -144,6 +145,31 @@ def test_appworld_completion_check_requires_actual_successful_call_not_docs_or_f
         )
     )
     assert appworld_completion_observed(state)
+
+
+def test_appworld_discovery_action_uses_only_public_objective():
+    public_task = task().model_copy(
+        update={
+            "input": json.dumps(
+                {
+                    "instruction": "Inspect Venmo records 🌐",
+                    "supervisor": {"email": "public@example.invalid"},
+                }
+            )
+        }
+    )
+    state = TaskState(task=public_task)
+
+    decision = appworld_discovery_action(state)
+
+    assert decision is not None
+    code = decision.action.arguments["code"]
+    assert "Inspect Venmo records 🌐" in code
+    assert "search_api_docs(query=objective" in code
+    assert '("show_profile", "show_account_passwords")' in code
+    assert 'api_name="login"' in code
+    assert "public@example.invalid" not in code
+    assert appworld_discovery_action(TaskState(task=task())) is None
 
 
 async def test_history_exact_budget_retains_latest_multibyte_attempt():

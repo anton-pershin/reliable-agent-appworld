@@ -14,6 +14,7 @@ from typing import BinaryIO, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from .contracts import (
+    ActionDecision,
     ActionRequest,
     ActionResult,
     ActionsMessage,
@@ -120,6 +121,56 @@ def appworld_completion_observed(state: TaskState) -> bool:
             if result.status == "ok" and "Marked the active task complete." in str(output):
                 return True
     return False
+
+
+def appworld_discovery_action(state: TaskState) -> ActionDecision | None:
+    """Build one public, task-independent API-doc onboarding action for AppWorld."""
+    try:
+        public_input = json.loads(state.task.input)
+    except json.JSONDecodeError:
+        return None
+    objective = public_input.get("instruction") if isinstance(public_input, dict) else None
+    if not isinstance(objective, str) or not objective:
+        return None
+    code = f'''# Deterministic public API onboarding; no private data is accessed.
+objective = {json.dumps(objective, ensure_ascii=False)}
+print("Objective:", objective)
+
+def compact_doc(doc):
+    if not isinstance(doc, dict) or "api_name" not in doc:
+        return doc
+    return {{
+        "app_name": doc.get("app_name"),
+        "api_name": doc.get("api_name"),
+        "description": doc.get("description"),
+        "parameters": [
+            (p.get("name"), p.get("type"), p.get("required"), p.get("description"), p.get("constraints"))
+            for p in doc.get("parameters", [])
+        ],
+        "success_response": doc.get("response_schemas", {{}}).get("success"),
+    }}
+
+docs = apis.api_docs.search_api_docs(query=objective, page_index=0, page_limit=10)
+print("Relevant API schemas:")
+if isinstance(docs, list):
+    for doc in docs:
+        print(compact_doc(doc))
+else:
+    print(docs)
+    docs = []
+
+print("Supervisor credential/profile schemas:")
+for api_name in ("show_profile", "show_account_passwords"):
+    print(compact_doc(apis.api_docs.show_api_doc(app_name="supervisor", api_name=api_name)))
+
+app_names = sorted({{doc.get("app_name") for doc in docs if isinstance(doc, dict)}} - {{"api_docs", "supervisor", None}})
+print("Relevant app login schemas:")
+for app_name in app_names[:4]:
+    print(compact_doc(apis.api_docs.show_api_doc(app_name=app_name, api_name="login")))
+'''
+    return ActionDecision(
+        action=ActionRequest(name="execute_code", arguments={"code": code})
+    )
 
 
 def _file_descriptor(stream: BinaryIO) -> int | None:
