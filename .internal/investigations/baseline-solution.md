@@ -17,7 +17,7 @@ Select, implement, and evaluate a credible baseline agent for the requirements i
 
 ### Current state
 
-The baseline spec is implemented and independently reviewed. The final code passed 167 tests on each supported Pydantic AI version, a six-job Python/version/wheel CI matrix, and repeated dev validation. Authoritative full run `20261125T132059-063795Z-2c936467dd77` completed all 630 episodes with no infrastructure failures or invalid error flags. The implementation is valid but not accepted: AC2/AC3/AC7 passed, while AC1 measured zero overall task success. The full-validation history is recorded and the increment is ready for the PR review loop. The investigation remains active because its task-success objective is unmet; near-perfect failure flagging and zero repeat range do not compensate for the absence of solved tasks.
+The baseline spec was merged through PR #2, while project acceptance remains blocked by zero task success. A new accuracy investigation is analyzing the 630 public full-run trajectories without private evaluator reports. Initial aggregate analysis found only one actual `complete_task` invocation: nine confident finals skipped it, and 621 episodes stopped after a mean of 6.4 actions when the usable internal time was exhausted. API documentation calls were frequent and often inefficient. The first candidate family therefore targets completion evidence and turn efficiency rather than additional planning machinery. Small train screens will gate broader repeated dev confirmation; full validation remains reserved for the final reviewed revision ([initial failure analysis](evidence/accuracy-initial-failure-analysis.json)).
 
 ### Contexts
 
@@ -88,6 +88,7 @@ The baseline spec is implemented and independently reviewed. The final code pass
 | E23 | Does the final reviewed revision pass its repeated dev gate? | C11 | Run `20261125T125107-110408Z-3a9489d3405b` completed all 12 episodes with no infrastructure failures and every criterion at least valid. All failures were flagged and mean latency was 81.6 seconds: [final dev result](evidence/appworld-dev-final-result.json). | Spec AC6 is satisfied for the final code revision. Submit full validation with identical bounded overrides; zero task success remains an explicit quality gap. |
 | E24 | Does the complete portability/version/wheel CI matrix pass? | C9 | GitHub Actions run `45618051706` passed all six Python 3.11–3.13 × Pydantic AI 2.66/2.74 jobs, including tests, Ruff, build, installed-wheel episode, and entry points: [CI results](evidence/ci-matrix-results.json). | Keep this workflow required for the PR and any review changes. |
 | E25 | What is the baseline's authoritative full-validation outcome? | C12 | Run `20261125T132059-063795Z-2c936467dd77` completed all 630 episodes with no infrastructure failures or invalid flags. VM1 was 0; precision/recall/range/timeliness were 1.0/0.9857/0/1.0. The implementation is valid but not accepted: [full result](evidence/appworld-full-baseline-result.json). | Satisfy the increment's at-least-valid gate and open the PR. Keep the investigation active and prioritize actual task-solving quality in the next candidate; do not claim project completion or useful consistency from zero successes. |
+| E26 | Which systematic public-trajectory failures explain the zero-success baseline? | C12 | Only one of 630 episodes actually invoked `complete_task`; nine confident finals omitted it and 621 stopped after a mean of 6.4 actions. The run recorded 2,396 API-doc actions and 821 failed results: [initial accuracy analysis](evidence/accuracy-initial-failure-analysis.json). | Test completion-evidence enforcement and turn efficiency first. Use concise docs discovery, direct-answer semantics, remaining-time feedback, and measured sampling variants; avoid planners/voting until these simpler gates are resolved. |
 
 ### Next candidates
 
@@ -101,6 +102,7 @@ The baseline spec is implemented and independently reviewed. The final code pass
 - [x] Complete the A10 disk audit and identify specific cleanup candidates.
 - [x] Obtain cleanup approval before deleting anything; then verify reclaimed space and preserved model integrity.
 - [ ] Compare one fixed public onboarding demonstration and other quality improvements on a future completed dev population; fenced-code extraction remains unnecessary unless both structured modes fail.
+- [ ] Quantify completion, discovery, authentication, pagination, and timeout failures from public trajectories; select a small stratified train screen and freeze dev confirmation before candidate experiments.
 - [x] Select the initial prompt/history/self-assessment design and create the implementation spec with explicit decision gates.
 - [x] Revalidate the independently reviewed/hardened revision on the repeated dev population.
 - [x] Record an authoritative full-validation result for the latest pushed revision.

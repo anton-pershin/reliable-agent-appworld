@@ -1,0 +1,59 @@
+{
+  "observed_on": "2026-11-26",
+  "source_run_id": "20261125T132059-063795Z-2c936467dd77",
+  "source_run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T132059-063795Z-2c936467dd77",
+  "solution_commit": "f8da94d9e8747317eedefed7a0260a69c6b9d606",
+  "evidence_boundary": {
+    "inputs_used": [
+      "episodes.jsonl aggregate public records",
+      "per-episode protocol.jsonl public task/action/observation/final messages",
+      "public AppWorld API Docs and Supervisor API source"
+    ],
+    "private_evaluator_reports_inspected": false,
+    "ground_truth_inspected": false,
+    "credentials_or_private_task_data_included": false
+  },
+  "population": {
+    "episodes": 630,
+    "tasks": 315,
+    "scenarios": 105,
+    "successful_episodes": 0,
+    "infrastructure_failures": 0,
+    "final_responses_received": 630
+  },
+  "termination_and_completion": {
+    "controlled_stopped_episodes": 621,
+    "completed_true_episodes": 9,
+    "likely_incorrect_true_episodes": 621,
+    "episodes_whose_code_referenced_complete_task": 3,
+    "episodes_which_actually_invoked_complete_task": 1,
+    "completed_true_episodes_without_complete_task_invocation": 9,
+    "interpretation": "Eight references to completion in the prompt did not ensure the environment completion call. Nine confident finals bypassed it; the one actual invocation occurred in an episode that later timed out and was not successful."
+  },
+  "actions": {
+    "total_actions": 4040,
+    "mean_actions_per_episode": 6.412698412698413,
+    "action_count_distribution": {
+      "1": 1,
+      "2": 8,
+      "3": 14,
+      "4": 32,
+      "5": 55,
+      "6": 158,
+      "7": 271,
+      "8": 86,
+      "9": 5
+    },
+    "api_docs_actions": 2396,
+    "login_actions": 209,
+    "failed_action_results": 821,
+    "interpretation": "Most episodes exhausted the usable 80-second decision/action period after six or seven turns. API documentation discovery consumed a large share of turns; the small action budget was not the binding limit."
+  },
+  "representative_public_findings": [
+    "Several completed=true trajectories contained plausible final answers or effects but no complete_task call, so private evaluation correctly remained unsuccessful.",
+    "The public complete_task schema requires a concise direct answer if and only if the instruction requests one; action-only tasks must omit it.",
+    "Public traces include avoidable detailed-doc lookups, repeated show calls, unauthenticated calls, incorrect requester usage, and assumptions about response fields.",
+    "The prompt requires detailed docs before calls and gives no remaining-time signal, while each model turn uses thinking and resends task/application descriptions."
+  ],
+  "decision": "Prioritize general completion-evidence enforcement and turn efficiency before considering planners or voting. Test concise API Docs search, selective detailed docs, direct-answer completion, remaining-time feedback, and sampling/latency variants on a prespecified small public train screen. Promote only candidates with actual task successes to repeated dev confirmation."
+}
