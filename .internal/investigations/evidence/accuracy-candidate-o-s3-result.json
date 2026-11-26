@@ -1,0 +1,30 @@
+{
+  "run_id": "20261126T112911-243164Z-b162cf5d36ac",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T112911-243164Z-b162cf5d36ac",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "29d0785a3db12e85a41c5e7f995cc44c7d4d1c7b",
+  "population": {"scenarios": ["e7a10f8", "31dc501"], "variants": 6, "repeats": 2, "episodes": 12},
+  "operational_incident": {"connection_failures": 0},
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.3333333333333333},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.875},
+    "AC3": {"status": "valid", "repeat_range": 0.33333333333333337, "acceptance_status": "rejected"},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "successes": 4,
+    "successes_by_repeat": {"1": 1, "2": 3},
+    "successful_tasks": ["31dc501_1", "31dc501_2", "31dc501_3"],
+    "playlist_answer_successes": 0,
+    "incorrect_confident_completions": 1,
+    "mean_seconds": 109.2462
+  },
+  "interpretation": [
+    "All four successes were verified alarm mutations; the same three alarm variants were solved across the two repeats, with one additional incorrect broad alarm update in repeat 1.",
+    "All six playlist-duration episodes remained unsuccessful, primarily from model timeouts or failure to use public show_song duration data.",
+    "Aggregate AC3 was not satisfied and must remain an explicit limitation; no claim of consistent overall task solving is justified."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Select this runtime for the next general spec because it gives the best clean S2/S3 results and every criterion is at least valid. The spec must require honest documentation of AC3 and remaining zero-success task families, not redefine project acceptance."
+}

@@ -17,7 +17,7 @@ Select, implement, and evaluate a credible baseline agent for the requirements i
 
 ### Current state
 
-The merged baseline's zero-success outcome has now been exceeded in partial validation: automatic observed completion produced genuine successes on both a public direct-answer task and an authenticated player-navigation task. Global bootstrap and prompt rewrites were not consistently beneficial; adaptive public/private routing, action authentication, final-decision reserve, and no-identical-timeout-retry are the current candidate family. Short 512-token generation was explicitly rejected. The exact runtime is now undergoing the frozen independent 12-task S2 generalization run with 180-second episodes and 1024 tokens. No new full validation has been started; S3/final spec/full validation remain gated on independent task successes.
+The selected accuracy candidate uses adaptive public onboarding, verified automatic completion, direct-answer normalization, exact-target/write guidance, and a single 60-second model cap. Clean independent S2 run `20261126T111210-485860Z-a62eb5761864` solved a followed-artist query and an exact alarm mutation (2/12). Clean repeated S3 run `20261126T112911-243164Z-b162cf5d36ac` solved all three alarm variants across repeats (4/12); AC1/AC3 were valid and AC2/AC7 accepted. AC3's 0.3333 repeat range and zero playlist-answer successes remain explicit limitations. The next general spec will make this behavior the installable default and require final default-configuration checks, independent review, and one authoritative full validation; project acceptance is not claimed.
 
 ### Contexts
 
@@ -108,6 +108,7 @@ The merged baseline's zero-success outcome has now been exceeded in partial vali
 | E40 | Do focused semantics and a single 60-second model cap improve S2? | C15 | Provisional N run `20261126T103514-729814Z-528a1f14bd10` solved playlist-duration and workout-duration tasks (2/12). Two other episodes failed during the local SSH tunnel outage; Who/year normalization and exact alarm targeting remained defective: [N first result](evidence/accuracy-candidate-n-first-result.json). | Restore the tunnel with a longer lifetime and rerun N exactly. Fix answer prefix/year extraction and singular-target guidance locally; do not treat the incident-affected score as final evidence. |
 | E41 | What does the tunnel-free N rerun establish? | C15 | Clean N run `20261126T105514-791751Z-cd280132edae` solved only the alarm task (1/12) with no connection failures. Wrong temporal/entity answers and unsupported cannot-determine claims persisted: [N clean result](evidence/accuracy-candidate-n-clean-result.json). | Treat unseeded task success as variable and use clean completed populations. Evaluate the revised candidate on S2/S3 before freezing the spec; do not select the favorable 2/12 N sample. |
 | E42 | Do answer/exact-target/contact fixes produce clean independent successes? | C15 | Revised S2 run `20261126T111210-485860Z-a62eb5761864` solved followed-artist and exact-alarm tasks (2/12) with no connection failures. The traces show entity-only completion and exact verified targeting: [revised S2 result](evidence/accuracy-candidate-o-s2-result.json). | Select this candidate pending repeated S3. Preserve the evidence that other confident claims remain wrong and project acceptance is still unmet. |
+| E43 | Does the selected candidate improve the repeated S3 population? | C15 | Revised S3 run `20261126T112911-243164Z-b162cf5d36ac` solved four alarm episodes across all three variants (4/12). AC2/AC7 passed and AC1/AC3 were valid; repeat range was 0.3333 and playlist answers remained zero: [revised S3 result](evidence/accuracy-candidate-o-s3-result.json). | Freeze this runtime for the next general spec with AC3 and task-family gaps explicit. Do not claim project acceptance or consistent overall solving. |
 
 ### Next candidates
 
@@ -120,8 +121,9 @@ The merged baseline's zero-success outcome has now been exceeded in partial vali
 - [x] Qualify model identity, sampling, structured output, context, and short concurrency batches.
 - [x] Complete the A10 disk audit and identify specific cleanup candidates.
 - [x] Obtain cleanup approval before deleting anything; then verify reclaimed space and preserved model integrity.
-- [ ] Compare one fixed public onboarding demonstration and other quality improvements on a future completed dev population; fenced-code extraction remains unnecessary unless both structured modes fail.
-- [ ] Quantify completion, discovery, authentication, pagination, and timeout failures from public trajectories; select a small stratified train screen and freeze dev confirmation before candidate experiments.
+- [x] Compare one fixed public onboarding demonstration and other quality improvements; the worked prompt was rejected for low throughput, and structured decisions remained viable.
+- [x] Quantify public failures and complete frozen S1/S2/S3 candidate screens with independent and repeated evidence.
+- [ ] Freeze the selected verified-completion runtime in a general spec, make it the default, complete final review/default checks, and append a new full-validation result.
 - [x] Select the initial prompt/history/self-assessment design and create the implementation spec with explicit decision gates.
 - [x] Revalidate the independently reviewed/hardened revision on the repeated dev population.
 - [x] Record an authoritative full-validation result for the latest pushed revision.
