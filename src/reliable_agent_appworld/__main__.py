@@ -6,6 +6,7 @@ import logging
 import sys
 import time
 from collections.abc import Sequence
+from functools import partial
 
 from .config import AgentConfig, load_config
 from .contracts import controlled_failure
@@ -62,7 +63,10 @@ async def run_episode(config: AgentConfig) -> None:
             logger,
             completion_check=completion_check,
             bootstrap_action=(
-                appworld_discovery_action
+                partial(
+                    appworld_discovery_action,
+                    authenticate=config.bootstrap_authentication,
+                )
                 if config.bootstrap_discovery and completion_check is not None
                 else None
             ),

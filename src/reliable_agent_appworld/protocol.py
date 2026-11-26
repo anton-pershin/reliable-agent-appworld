@@ -124,7 +124,9 @@ def appworld_completion_observed(state: TaskState) -> bool:
     return False
 
 
-def appworld_discovery_action(state: TaskState) -> ActionDecision | None:
+def appworld_discovery_action(
+    state: TaskState, *, authenticate: bool = False
+) -> ActionDecision | None:
     """Build one public, task-independent API-doc onboarding action for AppWorld."""
     try:
         public_input = json.loads(state.task.input)
@@ -133,6 +135,28 @@ def appworld_discovery_action(state: TaskState) -> ActionDecision | None:
     objective = public_input.get("instruction") if isinstance(public_input, dict) else None
     if not isinstance(objective, str) or not objective:
         return None
+    authentication = '''
+# Establish permitted public sessions once; retain tokens without printing secrets.
+supervisor_profile = apis.supervisor.show_profile()
+account_password_map = {
+    item["account_name"]: item["password"]
+    for item in apis.supervisor.show_account_passwords()
+}
+access_tokens = {}
+for app_name in app_names[:4]:
+    if app_name not in account_password_map:
+        continue
+    username = supervisor_profile["phone_number"] if app_name == "phone" else supervisor_profile["email"]
+    login_response = getattr(apis, app_name).login(
+        username=username, password=account_password_map[app_name]
+    )
+    if isinstance(login_response, dict) and "access_token" in login_response:
+        access_tokens[app_name] = login_response["access_token"]
+        print("Saved access token for", app_name, "as access_tokens[%r]" % app_name)
+    else:
+        print("Login failed for", app_name, login_response)
+print("Authenticated apps:", sorted(access_tokens))
+''' if authenticate else ""
     code = f'''# Deterministic public API onboarding; no private data is accessed.
 objective = {json.dumps(objective, ensure_ascii=False)}
 print("Objective:", objective)
@@ -168,6 +192,7 @@ app_names = sorted({{doc.get("app_name") for doc in docs if isinstance(doc, dict
 print("Relevant app login schemas:")
 for app_name in app_names[:4]:
     print(compact_doc(apis.api_docs.show_api_doc(app_name=app_name, api_name="login")))
+{authentication}
 '''
     return ActionDecision(
         action=ActionRequest(name="execute_code", arguments={"code": code})

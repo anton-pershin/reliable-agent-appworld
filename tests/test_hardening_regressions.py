@@ -170,6 +170,15 @@ def test_appworld_discovery_action_uses_only_public_objective():
     assert '("show_profile", "show_account_passwords")' in code
     assert 'api_name="login"' in code
     assert "public@example.invalid" not in code
+    assert "access_tokens = {}" not in code
+    authenticated = appworld_discovery_action(state, authenticate=True)
+    assert authenticated is not None
+    authenticated_code = authenticated.action.arguments["code"]
+    assert "access_tokens = {}" in authenticated_code
+    assert 'app_name == "phone"' in authenticated_code
+    assert "getattr(apis, app_name).login" in authenticated_code
+    assert 'print("Access token' not in authenticated_code
+    assert "public@example.invalid" not in authenticated_code
     assert appworld_discovery_action(TaskState(task=task())) is None
 
 
