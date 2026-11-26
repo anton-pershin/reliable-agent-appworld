@@ -199,6 +199,28 @@ for api_name in ("show_profile", "show_account_passwords"):
     print(compact_doc(apis.api_docs.show_api_doc(app_name="supervisor", api_name=api_name)))
 
 app_names = sorted({{doc.get("app_name") for doc in docs if isinstance(doc, dict)}} - {{"api_docs", "supervisor", None}})
+app_aliases = {{
+    "amazon": ("amazon",),
+    "file_system": ("file system", "file_system"),
+    "gmail": ("gmail",),
+    "phone": ("phone",),
+    "simple_note": ("simple note", "simple_note"),
+    "splitwise": ("splitwise",),
+    "spotify": ("spotify",),
+    "todoist": ("todoist",),
+    "venmo": ("venmo",),
+}}
+objective_lower = objective.lower()
+mentioned = [
+    name for name in app_names
+    if any(alias in objective_lower for alias in app_aliases.get(name, (name,)))
+]
+if mentioned:
+    app_names = mentioned
+if any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent")):
+    if "phone" not in app_names:
+        app_names.append("phone")
+app_names = sorted(set(app_names))
 print("Relevant app login schemas:")
 for app_name in app_names[:4]:
     print(compact_doc(apis.api_docs.show_api_doc(app_name=app_name, api_name="login")))
@@ -227,17 +249,31 @@ def _objective_requests_answer(objective: str) -> bool:
     )
 
 
-def _direct_answer(value: str) -> str | int | float:
+def _direct_answer(objective: str, value: str) -> str | int | float:
     stripped = value.strip()
+    if re.match(r"^\s*who\b", objective, re.IGNORECASE):
+        stripped = re.split(r"\s+with\s+\d", stripped, maxsplit=1)[0].rstrip()
+        stripped = re.sub(r"\s*\([^()]*\)\s*$", "", stripped).rstrip()
     if not stripped:
         return stripped
-    if re.fullmatch(r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)", stripped) or (
+    if (
         len(stripped) >= 2
         and stripped[0] == stripped[-1]
         and stripped[0] in {'"', "'"}
     ):
         try:
             return json.loads(stripped) if stripped[0] != "'" else stripped[1:-1]
+        except json.JSONDecodeError:
+            pass
+    numeric_match = re.fullmatch(r"[-+]?\$?\d[\d,]*(?:\.\d+)?", stripped)
+    numeric = numeric_match.group(0) if numeric_match else None
+    if numeric is None and re.match(r"^\s*how\b", objective, re.IGNORECASE):
+        match = re.search(r"[-+]?\$?\d[\d,]*(?:\.\d+)?", stripped)
+        numeric = match.group(0) if match else None
+    if numeric is not None:
+        normalized = str(numeric).replace("$", "").replace(",", "")
+        try:
+            return json.loads(normalized)
         except json.JSONDecodeError:
             pass
     return stripped
@@ -255,7 +291,7 @@ def appworld_completion_action(
     if not isinstance(objective, str) or not objective:
         return None
     if _objective_requests_answer(objective):
-        answer = json.dumps(_direct_answer(decision.answer), ensure_ascii=False)
+        answer = json.dumps(_direct_answer(objective, decision.answer), ensure_ascii=False)
         code = f"print(apis.supervisor.complete_task(answer={answer}))"
     else:
         code = "print(apis.supervisor.complete_task())"

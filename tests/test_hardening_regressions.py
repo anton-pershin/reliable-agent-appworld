@@ -165,6 +165,7 @@ def test_appworld_discovery_action_uses_only_public_objective():
 
     assert decision is not None
     code = decision.action.arguments["code"]
+    compile(code, "<public-bootstrap>", "exec")
     assert "Inspect Venmo records 🌐" in code
     assert "search_api_docs(query=objective" in code
     assert '("show_profile", "show_account_passwords")' in code
@@ -174,6 +175,7 @@ def test_appworld_discovery_action_uses_only_public_objective():
     authenticated = appworld_discovery_action(state, authenticate=True)
     assert authenticated is not None
     authenticated_code = authenticated.action.arguments["code"]
+    compile(authenticated_code, "<authenticated-bootstrap>", "exec")
     assert "access_tokens = {}" in authenticated_code
     assert 'app_name == "phone"' in authenticated_code
     assert "getattr(apis, app_name).login" in authenticated_code
@@ -207,6 +209,9 @@ def test_appworld_discovery_action_uses_only_public_objective():
         ("What is the song title?", '"Swept Away"', 'answer="Swept Away"'),
         ("How many songs are there?", "23", "answer=23"),
         ("Give me a comma-separated list.", "one, two", 'answer="one, two"'),
+        ("Who is the most followed artist?", "Eliana Harper with 29 followers", 'answer="Eliana Harper"'),
+        ("How long is the workout?", "12.5 minutes", "answer=12.5"),
+        ("What is the total cost?", "$1,234.50", "answer=1234.5"),
         ("Play the selected song.", "The song is playing.", "complete_task()"),
     ],
 )
