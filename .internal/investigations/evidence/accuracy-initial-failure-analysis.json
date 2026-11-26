@@ -44,6 +44,7 @@
       "8": 86,
       "9": 5
     },
+    "api_doc_counting_predicate": "One count per action whose public code text contains api_docs; a broad textual measure that can include compound or non-executing references.",
     "api_docs_actions": 2396,
     "login_actions": 209,
     "failed_action_results": 821,

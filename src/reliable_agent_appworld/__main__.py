@@ -18,8 +18,10 @@ from .protocol import (
     JsonLinesToolExecutor,
     JsonLinesTransport,
     appworld_completion_action,
+    appworld_completion_call_id,
     appworld_completion_observed,
     appworld_discovery_action,
+    appworld_validate_action,
     decode_appworld_public_input,
 )
 from .runner import TaskRunner
@@ -62,6 +64,9 @@ async def run_episode(config: AgentConfig) -> None:
             model,
             logger,
             completion_check=completion_check,
+            completion_call_id=(
+                appworld_completion_call_id if completion_check is not None else None
+            ),
             bootstrap_action=(
                 partial(
                     appworld_discovery_action,
@@ -76,6 +81,7 @@ async def run_episode(config: AgentConfig) -> None:
                 if config.automatic_completion and completion_check is not None
                 else None
             ),
+            action_check=appworld_validate_action if completion_check is not None else None,
         )
         executor = JsonLinesToolExecutor(transport)
         runner = TaskRunner(config, engine, executor, logger)

@@ -37,6 +37,7 @@
     "literal_http_401_403_payloads": 0
   },
   "discovery_and_repetition": {
+    "api_doc_counting_predicate": "Conservative AST-based identification of actions making API-doc calls; unlike the initial broad textual count, this excludes some compound/non-executing references.",
     "api_doc_actions": 2263,
     "api_doc_action_fraction": 0.5601485148514851,
     "api_doc_observation_character_fraction": 0.768,

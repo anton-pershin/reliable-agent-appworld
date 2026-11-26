@@ -21,6 +21,10 @@ _JSON_SECRET = re.compile(
     r"(?i)(['\"](?:password|access_token|auth_token|refresh_token|id_token)['\"]\s*:\s*['\"])(.*?)(['\"])"
 )
 _BEARER = re.compile(r"(?i)bearer\s+[a-z0-9._~+/=-]+")
+_JWT = re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b")
+_UNQUOTED_SECRET = re.compile(
+    r"(?i)\b(password|access_token|session_token)(\s*[:=]\s*)([^\s,;}]+)"
+)
 _LOG_MARKER_RESERVE = len(b'{"event":"log_limit_reached"}\n')
 _STDERR_LIMIT_MARKER = b'{"event":"stderr_limit_reached"}\n'
 _STDERR_MARKER_RESERVE = len(_STDERR_LIMIT_MARKER)
@@ -42,6 +46,10 @@ def _sanitize_string(value: str, secrets: set[str]) -> str:
     for secret in secrets:
         value = value.replace(secret, "<redacted>")
     value = _BEARER.sub("Bearer <redacted>", value)
+    value = _JWT.sub("<redacted>", value)
+    value = _UNQUOTED_SECRET.sub(
+        lambda match: match.group(1) + match.group(2) + "<redacted>", value
+    )
     value = _INLINE_SECRET.sub(
         lambda match: match.group(1) + match.group(2) + match.group(3)
         + "<redacted>" + match.group(3),

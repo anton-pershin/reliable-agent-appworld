@@ -157,11 +157,13 @@ async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
     prompt = json.loads(client.prompt(TaskState(task=task()), 12.34))
 
     assert settings["extra_body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert "Raw requester and HTTP access are forbidden" in client.instructions
+    assert "Never print passwords" in client.instructions
     assert client._public_settings()["thinking"] is False
     assert prompt["remaining_episode_seconds"] == 12.3
     assert prompt["task"]["objective"] == "Print 42"
     assert "instruction" not in prompt["task"]["input"]
-    assert prompt["prompt_version"] == "react-v2.3-verified"
+    assert prompt["prompt_version"] == "react-v2.4-verified"
 
 
 async def test_pydantic_schema_validation_repair_is_retried_and_logged():
@@ -385,6 +387,13 @@ async def test_automatic_completion_action_skips_ignored_reprompt_and_releases_f
         ),
     )
     state = TaskState(task=task())
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-1",
+            action=action().action,
+            results=[ActionResult(status="ok", observation={"output": "public work"})],
+        )
+    )
 
     completion = await engine.next_decision(state, 30)
     assert isinstance(completion, ActionDecision)
@@ -395,7 +404,7 @@ async def test_automatic_completion_action_skips_ignored_reprompt_and_releases_f
     engine.record_attempt(
         state,
         ActionAttempt(
-            call_id="call-1",
+            call_id="call-2",
             action=completion.action,
             results=[
                 ActionResult(

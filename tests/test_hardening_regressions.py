@@ -184,17 +184,23 @@ def test_appworld_discovery_action_uses_only_public_objective():
     assert "public@example.invalid" not in authenticated_code
     assert appworld_discovery_action(TaskState(task=task())) is None
 
-    public_lookup = TaskState(
-        task=task().model_copy(
-            update={"input": json.dumps({"instruction": "What is Velvet Echo's top song?"})}
+    for public_instruction in (
+        "What is Velvet Echo's top song?",
+        "Find Velvet Echo's top song.",
+        "Show the title of Velvet Echo's top song.",
+    ):
+        public_lookup = TaskState(
+            task=task().model_copy(
+                update={"input": json.dumps({"instruction": public_instruction})}
+            )
         )
-    )
-    assert appworld_discovery_action(public_lookup, private_only=True) is None
+        assert appworld_discovery_action(public_lookup, private_only=True) is None
     for private_objective in (
         "Keep going to the previous song until Luna Starlight plays.",
         "How many playlists do I have?",
         "Add these songs to my queue.",
         "Play the least listened song from this public album.",
+        "Find and play Velvet Echo's top song.",
     ):
         private_state = TaskState(
             task=task().model_copy(
@@ -208,7 +214,16 @@ def test_appworld_discovery_action_uses_only_public_objective():
     ("objective", "answer", "expected"),
     [
         ("What is the song title?", '"Swept Away"', 'answer="Swept Away"'),
+        ("What is the song title?", '"1984"', 'answer="1984"'),
+        ("Find Velvet Echo's top song.", "Bittersweet Memories Remain", 'answer="Bittersweet Memories Remain"'),
+        ("Show the title of Velvet Echo's top song.", "Bittersweet Memories Remain", 'answer="Bittersweet Memories Remain"'),
+        ("Find and play Velvet Echo's top song.", "Played it", "complete_task()"),
+        ("Show the title and play the song.", "Played it", "complete_task()"),
         ("How many songs are there?", "23", "answer=23"),
+        ("How many songs are there?", '"23"', "answer=23"),
+        ("What is the total cost?", '"$23.50"', "answer=23.5"),
+        ("Using my Spotify data, who is the most followed artist?", "Eliana Harper with 29 followers", 'answer="Eliana Harper"'),
+        ("According to my plan. How long is the workout?", "In 2023 it was 60 minutes", "answer=60"),
         ("Give me a comma-separated list.", "one, two", 'answer="one, two"'),
         ("Who is the most followed artist?", "Eliana Harper with 29 followers", 'answer="Eliana Harper"'),
         ("Who is the most followed artist?", "Eliana Harper is the most followed artist I follow on Spotify, with 29 followers.", 'answer="Eliana Harper"'),
@@ -232,6 +247,16 @@ def test_appworld_completion_action_preserves_direct_answer_semantics(
 
     assert completion is not None
     assert expected in completion.action.arguments["code"]
+
+
+def test_answer_seeking_empty_completion_answer_is_rejected():
+    state = TaskState(
+        task=task().model_copy(
+            update={"input": json.dumps({"instruction": "How many songs are there?"})}
+        )
+    )
+    decision = final().model_copy(update={"answer": "  "})
+    assert appworld_completion_action(state, decision) is None
 
 
 async def test_history_exact_budget_retains_latest_multibyte_attempt():
@@ -274,6 +299,20 @@ def test_secrets_are_redacted_from_serialized_prompts_and_code():
     assert "appworld-session-secret" not in raw
     assert "code-password-secret" not in raw
     assert "max_output_tokens" in raw
+
+
+def test_standalone_jwt_and_unquoted_token_are_redacted():
+    event_logger, stream = logger()
+    jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl"
+    event_logger.emit(
+        "public_output",
+        text=f"access_token=standalone-session-secret and {jwt}",
+    )
+
+    raw = stream.getvalue()
+    assert "standalone-session-secret" not in raw
+    assert jwt not in raw
+    assert "<redacted>" in raw
 
 
 def test_bounded_stderr_proxy_caps_dependency_output_and_redacts():

@@ -111,21 +111,73 @@ def _successful_complete_task_call(code: str) -> bool:
     return False
 
 
+def _attempt_completion_succeeded(attempt) -> bool:
+    code = attempt.action.arguments.get("code")
+    if not isinstance(code, str) or not _successful_complete_task_call(code):
+        return False
+    return any(
+        result.status == "ok"
+        and "Marked the active task complete." in str(result.observation.get("output", ""))
+        for result in attempt.results
+    )
+
+
+def appworld_completion_call_id(state: TaskState) -> str | None:
+    for attempt in reversed(state.attempts):
+        if _attempt_completion_succeeded(attempt):
+            return attempt.call_id
+    return None
+
+
 def appworld_completion_observed(state: TaskState) -> bool:
     """Recognize public successful completion without coupling the generic engine to AppWorld."""
-    for attempt in state.attempts:
-        code = attempt.action.arguments.get("code")
-        if not isinstance(code, str) or not _successful_complete_task_call(code):
+    return appworld_completion_call_id(state) is not None
+
+
+_CREDENTIAL_NAME = re.compile(
+    r".*(?:password|access_token|tokens?|login|login_response|account_password_map).*",
+    re.IGNORECASE,
+)
+
+
+def appworld_validate_action(state: TaskState, decision: ActionDecision) -> None:
+    """Reject obvious raw-requester and credential-printing code before execution."""
+    del state
+    code = decision.action.arguments.get("code")
+    if not isinstance(code, str):
+        return
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(
+            alias.name == "apis" for alias in node.names
+        ):
+            raise ValueError("Do not import apis; use the preloaded high-level API object")
+        if isinstance(node, ast.Name) and node.id == "requester":
+            raise ValueError("Raw requester/HTTP access is forbidden; use high-level app APIs")
+        if isinstance(node, ast.Attribute) and node.attr == "requester":
+            raise ValueError("Raw requester/HTTP access is forbidden; use high-level app APIs")
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
             continue
-        for result in attempt.results:
-            output = result.observation.get("output", "")
-            if result.status == "ok" and "Marked the active task complete." in str(output):
-                return True
-    return False
+        if node.func.id != "print":
+            continue
+        for argument in node.args:
+            for child in ast.walk(argument):
+                if isinstance(child, ast.Name) and _CREDENTIAL_NAME.fullmatch(child.id):
+                    raise ValueError(
+                        "Do not print passwords, tokens, login responses, or credential variables"
+                    )
+                if isinstance(child, ast.Attribute) and child.attr in {
+                    "login",
+                    "show_account_passwords",
+                }:
+                    raise ValueError("Do not print raw login or account-password responses")
 
 
 _PRIVATE_CONTEXT = re.compile(
-    r"\b(?:my|mine|me|i|current|previous|next|feed|queue|libraries|library|account|friends?|roommates?|transactions?|notes?|files?|bills?|tasks?|alarms?|messages?|playlists?)\b",
+    r"\b(?:my|mine|me|i|current|previous|next|feed|queue|libraries|library|account|friends?|roommates?|coworkers?|spouse|wife|husband|transactions?|notes?|files?|bills?|tasks?|alarms?|messages?|playlists?)\b",
     re.IGNORECASE,
 )
 
@@ -153,6 +205,7 @@ account_password_map = {
     for item in apis.supervisor.show_account_passwords()
 }
 access_tokens = {}
+authenticated_apps = []
 for app_name in app_names[:4]:
     if app_name not in account_password_map:
         continue
@@ -162,25 +215,33 @@ for app_name in app_names[:4]:
     )
     if isinstance(login_response, dict) and "access_token" in login_response:
         access_tokens[app_name] = login_response["access_token"]
+        authenticated_apps.append(app_name)
         print("Saved access token for", app_name, "as access_tokens[%r]" % app_name)
     else:
-        print("Login failed for", app_name, login_response)
-print("Authenticated apps:", sorted(access_tokens))
+        print("Login failed for", app_name, "with a non-token response; credentials are not printed")
+print("Authenticated apps:", authenticated_apps)
 if relation_context and "phone" in access_tokens:
-    phone_contacts = apis.phone.search_contacts(
-        access_token=access_tokens["phone"], page_index=0, page_limit=20
-    )
+    phone_contacts = []
+    contact_page_index = 0
+    while True:
+        contact_page = apis.phone.search_contacts(
+            access_token=access_tokens["phone"], page_index=contact_page_index, page_limit=20
+        )
+        if not isinstance(contact_page, list):
+            print("Contact prefetch unavailable for phone; raw response is not printed")
+            break
+        phone_contacts.extend(contact_page)
+        if len(contact_page) < 20:
+            break
+        contact_page_index += 1
     print("Public contacts and relationships:")
-    if isinstance(phone_contacts, list):
-        for contact in phone_contacts:
-            print({
-                "name": (contact.get("first_name"), contact.get("last_name")),
-                "email": contact.get("email"),
-                "phone_number": contact.get("phone_number"),
-                "relationships": contact.get("relationships"),
-            })
-    else:
-        print(phone_contacts)
+    for contact in phone_contacts:
+        print({
+            "name": (contact.get("first_name"), contact.get("last_name")),
+            "email": contact.get("email"),
+            "phone_number": contact.get("phone_number"),
+            "relationships": contact.get("relationships"),
+        })
 ''' if authenticate else ""
     code = f'''# Deterministic public API onboarding; no private data is accessed.
 objective = {json.dumps(objective, ensure_ascii=False)}
@@ -232,7 +293,7 @@ mentioned = [
 ]
 if mentioned:
     app_names = mentioned
-relation_context = any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent"))
+relation_context = any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent", "spouse", "wife", "husband"))
 if relation_context:
     if "phone" not in app_names:
         app_names.append("phone")
@@ -248,26 +309,33 @@ for app_name in app_names[:4]:
 
 
 _ANSWER_QUESTION = re.compile(
-    r"^\s*(?:what|who|whom|whose|which|when|where|why|how|is|are|was|were|do|does|did|can|could|would|should)\b",
+    r"(?:^|[.!?]\s+|,\s*)(?:what|who|whom|whose|which|when|where|why|how|is|are|was|were|do|does|did|can|could|would|should)\b",
     re.IGNORECASE,
 )
 _ANSWER_IMPERATIVE = re.compile(
-    r"^\s*(?:give\s+me|tell\s+me|show\s+me|list|provide|calculate|compute|determine)\b",
+    r"(?:^|[.!?]\s+|,\s*)(?:find|show|give|tell|list|provide|calculate|compute|determine|identify|return)\b",
+    re.IGNORECASE,
+)
+_ACTION_IMPERATIVE = re.compile(
+    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment)\b",
     re.IGNORECASE,
 )
 
 
 def _objective_requests_answer(objective: str) -> bool:
-    return (
-        objective.rstrip().endswith("?")
-        or _ANSWER_QUESTION.match(objective) is not None
-        or _ANSWER_IMPERATIVE.match(objective) is not None
-    )
+    if objective.rstrip().endswith("?") or _ANSWER_QUESTION.search(objective):
+        return True
+    answer = _ANSWER_IMPERATIVE.search(objective)
+    if answer is None:
+        return False
+    action = _ACTION_IMPERATIVE.search(objective)
+    return action is None or answer.start() > action.start()
 
 
 def _direct_answer(objective: str, value: str) -> str | int | float:
     stripped = value.strip()
-    if re.match(r"^\s*who\b", objective, re.IGNORECASE):
+    answer_requested = _objective_requests_answer(objective)
+    if answer_requested and re.search(r"\bwho\b", objective, re.IGNORECASE):
         stripped = re.split(r"\s+with\s+\d", stripped, maxsplit=1)[0].rstrip()
         stripped = re.sub(r"\s*\([^()]*\)\s*$", "", stripped).rstrip()
         if re.search(r"\s+is\s+", stripped, re.IGNORECASE):
@@ -287,15 +355,18 @@ def _direct_answer(objective: str, value: str) -> str | int | float:
         and stripped[0] in {'"', "'"}
     ):
         try:
-            return json.loads(stripped) if stripped[0] != "'" else stripped[1:-1]
+            stripped = json.loads(stripped) if stripped[0] != "'" else stripped[1:-1]
         except json.JSONDecodeError:
             pass
+    numeric_objective = answer_requested and (
+        re.search(r"\bhow\b", objective, re.IGNORECASE)
+        or re.search(r"\b(?:total|cost|amount|duration)\b", objective, re.IGNORECASE)
+    )
+    if not numeric_objective:
+        return stripped
     numeric_match = re.fullmatch(r"[-+]?\$?\d[\d,]*(?:\.\d+)?", stripped)
     numeric = numeric_match.group(0) if numeric_match else None
-    numeric_objective = re.match(r"^\s*how\b", objective, re.IGNORECASE) or re.search(
-        r"\b(?:total|cost|amount|duration)\b", objective, re.IGNORECASE
-    )
-    if numeric is None and numeric_objective:
+    if numeric is None:
         currency = re.findall(r"[-+]?\$\d[\d,]*(?:\.\d+)?", stripped)
         numbers = re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", stripped)
         numeric = currency[-1] if currency else (numbers[-1] if numbers else None)
@@ -320,7 +391,10 @@ def appworld_completion_action(
     if not isinstance(objective, str) or not objective:
         return None
     if _objective_requests_answer(objective):
-        answer = json.dumps(_direct_answer(objective, decision.answer), ensure_ascii=False)
+        direct_answer = _direct_answer(objective, decision.answer)
+        if direct_answer == "":
+            return None
+        answer = json.dumps(direct_answer, ensure_ascii=False)
         code = f"print(apis.supervisor.complete_task(answer={answer}))"
     else:
         code = "print(apis.supervisor.complete_task())"
