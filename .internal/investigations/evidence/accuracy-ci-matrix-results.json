@@ -1,0 +1,26 @@
+{
+  "observed_on": "2026-11-26",
+  "github_run_id": 45823883934,
+  "run_url": "https://github.com/anton-pershin/reliable-agent-appworld/actions/runs/45823883934",
+  "triggering_commit": "c4a8a5c9100456169649c5fd712d9cbb134b257a",
+  "status": "completed",
+  "conclusion": "success",
+  "matrix_jobs": [
+    "test (3.11, 2.66.0)",
+    "test (3.11, 2.74.0)",
+    "test (3.12, 2.66.0)",
+    "test (3.12, 2.74.0)",
+    "test (3.13, 2.66.0)",
+    "test (3.13, 2.74.0)"
+  ],
+  "all_jobs_passed": true,
+  "each_job_checks": [
+    "225 tests",
+    "Ruff",
+    "sdist/wheel build",
+    "installed-wheel private action/no-answer episode",
+    "installed-wheel private answer/direct-answer episode",
+    "credential canary assertions",
+    "module and console entry points outside checkout"
+  ]
+}

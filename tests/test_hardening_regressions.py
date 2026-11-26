@@ -315,6 +315,29 @@ def test_standalone_jwt_and_unquoted_token_are_redacted():
     assert "<redacted>" in raw
 
 
+@pytest.mark.parametrize(
+    "assignment",
+    [
+        "password='two words'",
+        'password="two words"',
+        "access_token='two words'",
+        'access_token="two words"',
+    ],
+)
+def test_multiword_quoted_secrets_are_fully_redacted_everywhere(assignment):
+    event_logger, structured_stream = logger()
+    event_logger.emit("multiword_secret", text=assignment)
+
+    proxy_raw = io.StringIO()
+    proxy = BoundedRedactingStream(proxy_raw, max_bytes=1000)
+    proxy.write(assignment)
+
+    for raw in (structured_stream.getvalue(), proxy_raw.getvalue()):
+        assert "two" not in raw
+        assert "words" not in raw
+        assert "<redacted>" in raw
+
+
 def test_bounded_stderr_proxy_caps_dependency_output_and_redacts():
     raw = io.StringIO()
     proxy = BoundedRedactingStream(raw, max_bytes=500)
