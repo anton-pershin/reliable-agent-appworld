@@ -40,12 +40,23 @@ class DecisionEngine:
             return self.completion_check(state)
         return bool(state.attempts)
 
-    async def next_decision(self, state: TaskState, remaining_seconds: float) -> Decision:
-        if state.pending_final is not None and self._completion_observed(state):
-            decision = state.pending_final
-            state.pending_final = None
-            self.logger.emit("deferred_final_released", call_id=state.attempts[-1].call_id)
-            return decision
+    def release_deferred_final(self, state: TaskState) -> FinalDecision | None:
+        if state.pending_final is None or not self._completion_observed(state):
+            return None
+        decision = state.pending_final
+        state.pending_final = None
+        self.logger.emit(
+            "deferred_final_released",
+            call_id=state.attempts[-1].call_id if state.attempts else None,
+        )
+        return decision
+
+    async def next_decision(
+        self, state: TaskState, remaining_seconds: float, *, allow_actions: bool = True
+    ) -> Decision:
+        deferred = self.release_deferred_final(state)
+        if deferred is not None:
+            return deferred
         deadline = time.monotonic() + remaining_seconds
         for attempt in range(self.config.output_retries + 1):
             remaining = deadline - time.monotonic()
@@ -53,6 +64,15 @@ class DecisionEngine:
                 return self.controlled_stop("Decision budget exhausted")
             decision = await self.model.decide(state, remaining)
             if isinstance(decision, ActionDecision):
+                if not allow_actions:
+                    state.validation_feedback.append(
+                        "The action budget is exhausted. Return a FinalDecision based on existing public evidence; do not request another action."
+                    )
+                    if attempt < self.config.output_retries:
+                        continue
+                    return self.controlled_stop(
+                        "The model requested another action after the action budget was exhausted"
+                    )
                 try:
                     self._validate_action(state, decision)
                 except (ValueError, TypeError, jsonschema.ValidationError) as exc:
@@ -69,6 +89,8 @@ class DecisionEngine:
                 state.pending_final = None
                 if not decision.likely_incorrect:
                     decision = decision.model_copy(update={"likely_incorrect": True})
+                if not allow_actions:
+                    return decision
                 if attempt < self.config.output_retries:
                     state.validation_feedback.append(
                         "Recoverable public actions and budget remain. Return an ActionDecision to inspect docs, correct token usage, or otherwise make progress; give up only when public evidence shows further attempts cannot help."

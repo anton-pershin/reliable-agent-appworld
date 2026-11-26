@@ -51,14 +51,22 @@ class TaskRunner:
         self.logger.emit("task_started", task=task.model_dump(mode="json"))
         try:
             while True:
+                deferred = self.engine.release_deferred_final(state)
+                if deferred is not None:
+                    self.logger.emit(
+                        "task_finished",
+                        final_response=deferred.model_dump(mode="json"),
+                        action_attempts=state.action_attempts,
+                    )
+                    return deferred
                 remaining = deadline.remaining()
                 usable = remaining - self.config.final_response_reserve_seconds
                 if usable <= 0:
                     return await self._finish("Final-response reserve reached")
-                if state.action_attempts >= self.config.action_budget:
-                    return await self._finish("Solution action budget exhausted")
+                allow_actions = state.action_attempts < self.config.action_budget
                 decision = await asyncio.wait_for(
-                    self.engine.next_decision(state, usable), timeout=usable
+                    self.engine.next_decision(state, usable, allow_actions=allow_actions),
+                    timeout=usable,
                 )
                 if isinstance(decision, FinalDecision):
                     self.logger.emit(

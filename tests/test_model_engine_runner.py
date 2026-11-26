@@ -158,6 +158,8 @@ async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
     assert settings["extra_body"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert client._public_settings()["thinking"] is False
     assert prompt["remaining_episode_seconds"] == 12.3
+    assert prompt["task"]["objective"] == "Print 42"
+    assert "instruction" not in prompt["task"]["input"]
     assert prompt["prompt_version"] == "react-v3"
 
 
@@ -348,12 +350,40 @@ async def test_runner_records_uncertain_execution_and_stops():
     assert attempt.results[0].error.type == "execution_outcome_unknown"
 
 
-async def test_runner_action_budget_produces_controlled_final():
+async def test_runner_action_budget_requests_final_without_another_execution():
     cfg = config(action_budget=1)
     event_logger, _ = logger(cfg)
-    engine = DecisionEngine(cfg, QueueModel(action(), action()), event_logger)
-    runner = TaskRunner(cfg, engine, ScriptedExecutor(), event_logger)
+    engine = DecisionEngine(cfg, QueueModel(action(), final(False, True)), event_logger)
+    executor = ScriptedExecutor()
+    runner = TaskRunner(cfg, engine, executor, event_logger)
     result = await runner.run(task())
     assert result.completed is False
-    assert "budget" in result.reason
+    assert result.reason == "Cannot complete"
     assert runner.last_state.action_attempts == 1
+    assert len(executor.calls) == 1
+
+
+async def test_runner_releases_deferred_final_after_last_allowed_action():
+    cfg = config(action_budget=1, output_retries=1)
+    event_logger, _ = logger(cfg)
+    completion_action = action("print(apis.supervisor.complete_task(answer='42'))")
+    engine = DecisionEngine(
+        cfg,
+        QueueModel(final(), completion_action),
+        event_logger,
+        completion_check=lambda state: any(
+            "Marked the active task complete." in str(result.observation.get("output", ""))
+            for attempt in state.attempts
+            for result in attempt.results
+        ),
+    )
+    executor = ScriptedExecutor(
+        [ActionResult(status="ok", observation={"output": "Marked the active task complete."})]
+    )
+    runner = TaskRunner(cfg, engine, executor, event_logger)
+
+    result = await runner.run(task())
+
+    assert result.completed is True
+    assert runner.last_state.action_attempts == 1
+    assert len(executor.calls) == 1

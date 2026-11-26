@@ -146,13 +146,32 @@ class PydanticAIModelClient:
             self.logger.emit("context_trimmed", retained_attempts=len(entries))
         return result
 
+    def _task_payload(self, state: TaskState) -> dict[str, Any]:
+        payload = state.task.model_dump(mode="json")
+        raw_input = payload["input"]
+        try:
+            decoded = json.loads(raw_input)
+        except (json.JSONDecodeError, TypeError):
+            return payload
+        if not isinstance(decoded, dict):
+            return payload
+        instruction = decoded.get("instruction")
+        if isinstance(instruction, str):
+            payload["objective"] = instruction
+            payload["input"] = {
+                key: value for key, value in decoded.items() if key != "instruction"
+            }
+        else:
+            payload["input"] = decoded
+        return payload
+
     def prompt(self, state: TaskState, remaining_seconds: float | None = None) -> str:
         budget = {}
         if remaining_seconds is not None:
             budget = {"remaining_episode_seconds": max(0, round(remaining_seconds, 1))}
         return json.dumps(
             {
-                "task": state.task.model_dump(mode="json"),
+                "task": self._task_payload(state),
                 **budget,
                 "action_attempts": state.action_attempts,
                 "remaining_action_attempts": max(

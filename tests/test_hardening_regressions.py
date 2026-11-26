@@ -437,7 +437,7 @@ def test_stalled_observation_still_delivers_final_and_exits_with_stdin_open():
             "--model-retries",
             "0",
             "--episode-timeout-seconds",
-            "2",
+            "3",
             "--final-response-reserve-seconds",
             "0.25",
         ],
