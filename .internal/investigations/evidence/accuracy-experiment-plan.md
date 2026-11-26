@@ -32,9 +32,13 @@ A and B are sequential engineering probes, not independent ablations of every pr
 
 For the selected mechanism only, run a fresh stratified set of at least 12 tasks covering public reads, authenticated reads, single-app writes, multi-app writes, pagination, and direct answers. Freeze task IDs before submission. Use the same internal budgets and one repeat. Reject candidates whose successes are confined to the S1 mechanism set or whose error flags become misleading.
 
+Frozen on 2026-11-26 before M/S2 results: `e7a10f8_1`, `cef9191_1`, `afc4005_1`, `76f2c72_1`, `31dc501_1`, `13547f5_1`, `3d9a636_1`, `22cc237_1`, `d0b1f43_1`, `8ce6779_1`, `ce359b5_1`, and `50e1ac9_1`. These were selected from public instructions to span Spotify direct answers/libraries/writes, Simple Note, file system, phone, Venmo, Todoist, and multi-app workflows. No S1 task is included.
+
 ## S3: repeated dev confirmation
 
 Run a frozen dev population with at least two scenarios, all three variants, and two repeats, selecting all four registered criteria. Compare with the merged baseline's public dev/full evidence where applicable. Require every criterion to be at least valid, no infrastructure failures, actual task successes, and no material repeat collapse. Expand only if the result is too sparse to distinguish candidates.
+
+Frozen on 2026-11-26 before M/S2/S3 results: all variants of `e7a10f8` (private Spotify answer/pagination) and `31dc501` (phone action), two repeats, for 12 episodes. This gives independent variants and repeat evidence for both an answer-seeking and an action-only scenario.
 
 ## Final implementation gate
 
