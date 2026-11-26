@@ -282,6 +282,7 @@ def test_thinking_defaults_on_and_supports_environment_and_cli_overrides(monkeyp
     assert load_config([]).automatic_completion is False
     assert load_config(["--automatic-completion"]).automatic_completion is True
     assert load_config(["--bootstrap-authentication"]).bootstrap_authentication is True
+    assert load_config(["--adaptive-bootstrap"]).adaptive_bootstrap is True
 
 
 def test_cli_overrides_environment_and_preserves_unspecified_environment_values(monkeypatch):

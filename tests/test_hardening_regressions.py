@@ -181,6 +181,24 @@ def test_appworld_discovery_action_uses_only_public_objective():
     assert "public@example.invalid" not in authenticated_code
     assert appworld_discovery_action(TaskState(task=task())) is None
 
+    public_lookup = TaskState(
+        task=task().model_copy(
+            update={"input": json.dumps({"instruction": "What is Velvet Echo's top song?"})}
+        )
+    )
+    assert appworld_discovery_action(public_lookup, private_only=True) is None
+    for private_objective in (
+        "Keep going to the previous song until Luna Starlight plays.",
+        "How many playlists do I have?",
+        "Add these songs to my queue.",
+    ):
+        private_state = TaskState(
+            task=task().model_copy(
+                update={"input": json.dumps({"instruction": private_objective})}
+            )
+        )
+        assert appworld_discovery_action(private_state, private_only=True) is not None
+
 
 @pytest.mark.parametrize(
     ("objective", "answer", "expected"),

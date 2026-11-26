@@ -66,6 +66,7 @@ async def run_episode(config: AgentConfig) -> None:
                 partial(
                     appworld_discovery_action,
                     authenticate=config.bootstrap_authentication,
+                    private_only=config.adaptive_bootstrap,
                 )
                 if config.bootstrap_discovery and completion_check is not None
                 else None

@@ -124,8 +124,14 @@ def appworld_completion_observed(state: TaskState) -> bool:
     return False
 
 
+_PRIVATE_CONTEXT = re.compile(
+    r"\b(?:my|mine|me|i|current|previous|next|feed|queue|libraries|library|account|friends?|roommates?|transactions?|notes?|files?|bills?|tasks?|alarms?|messages?|playlists?)\b",
+    re.IGNORECASE,
+)
+
+
 def appworld_discovery_action(
-    state: TaskState, *, authenticate: bool = False
+    state: TaskState, *, authenticate: bool = False, private_only: bool = False
 ) -> ActionDecision | None:
     """Build one public, task-independent API-doc onboarding action for AppWorld."""
     try:
@@ -134,6 +140,8 @@ def appworld_discovery_action(
         return None
     objective = public_input.get("instruction") if isinstance(public_input, dict) else None
     if not isinstance(objective, str) or not objective:
+        return None
+    if private_only and _PRIVATE_CONTEXT.search(objective) is None:
         return None
     authentication = '''
 # Establish permitted public sessions once; retain tokens without printing secrets.

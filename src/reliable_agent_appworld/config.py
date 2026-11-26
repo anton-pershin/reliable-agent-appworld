@@ -29,6 +29,7 @@ class AgentConfig(ContractModel):
     thinking: bool = True
     bootstrap_discovery: bool = False
     bootstrap_authentication: bool = False
+    adaptive_bootstrap: bool = False
     automatic_completion: bool = False
     temperature: float = Field(default=0.6, ge=0, allow_inf_nan=False)
     top_p: float = Field(default=0.95, gt=0, le=1, allow_inf_nan=False)
@@ -107,6 +108,11 @@ def load_config(argv: Sequence[str] | None = None) -> AgentConfig:
     )
     parser.add_argument(
         "--bootstrap-authentication",
+        action=argparse.BooleanOptionalAction,
+        default=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--adaptive-bootstrap",
         action=argparse.BooleanOptionalAction,
         default=argparse.SUPPRESS,
     )
