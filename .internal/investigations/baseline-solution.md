@@ -17,7 +17,7 @@ Select, implement, and evaluate a credible baseline agent for the requirements i
 
 ### Current state
 
-The branch now contains a real reactive ReAct implementation, packaged prompts, CI, and extensive provider-independent/subprocess tests. The pinned A10 serving stack passed generation, structured-output, 11K-context, and concurrency probes. Two train smokes produced controlled measurable episodes: the first exposed nested structured-output serialization, and the second executed ten public actions but did not solve the task. A 12-episode dev diagnostic on commit `606a1bf` completed with every criterion at least valid, zero infrastructure failures, and timely responses, but zero task successes. Independent-review hardening now covers shared deadlines, nonblocking real stdio, cumulative output caps, stronger redaction, strict envelopes, and controlled finalization. The hardened revision passed 167 tests on each supported Pydantic AI version plus clean wheel gates; its final repeated dev diagnostic and six-job CI matrix passed, and authoritative full validation is the remaining increment gate.
+The baseline spec is implemented and independently reviewed. The final code passed 167 tests on each supported Pydantic AI version, a six-job Python/version/wheel CI matrix, and repeated dev validation. Authoritative full run `20261125T132059-063795Z-2c936467dd77` completed all 630 episodes with no infrastructure failures or invalid error flags. The implementation is valid but not accepted: AC2/AC3/AC7 passed, while AC1 measured zero overall task success. The full-validation history is recorded and the increment is ready for the PR review loop. The investigation remains active because its task-success objective is unmet; near-perfect failure flagging and zero repeat range do not compensate for the absence of solved tasks.
 
 ### Contexts
 
@@ -34,6 +34,7 @@ The branch now contains a real reactive ReAct implementation, packaged prompts, 
 | C9 | Post-review hardening revision with shared deadline and nonblocking transport | Local unit/fault-injection/subprocess/build/wheel gates | Python 3.12; Pydantic AI 2.66 and 2.74; no real provider in standard tests | 167 tests per version, Ruff/build/pip checks and installed-wheel episode passed |
 | C10 | Review-hardened commit `db0ed95e85333b76ffcc742959e8b2866cd4b41d` | Same six dev variants/two repeats; 90-second episode, 30-second model cap, 10-second reserve | A10 serving unchanged; concurrency 1 | Run `20261125T122958-509561Z-6d88a6eb5c98`: all criteria at least valid, precision/recall/timeliness 1.0, mean 81.7 seconds |
 | C11 | Final transport-hardened commit `5acf8f267f9984c8f87f22ebea13a7dd9befdb36` | Same final six dev variants/two repeats and bounded overrides | A10 serving unchanged; concurrency 1 | Run `20261125T125107-110408Z-3a9489d3405b`: all criteria at least valid, all failures flagged, mean 81.6 seconds |
+| C12 | Baseline implementation commit `f8da94d9e8747317eedefed7a0260a69c6b9d606` | Unchanged authoritative `appworld` full profile; 315 tasks, two repeats, all criteria; bounded solution overrides | A10/vLLM 0.34.0, validator concurrency 1, 17.6-hour wall run | Run `20261125T132059-063795Z-2c936467dd77`: valid not accepted; VM1 0, precision 1.0, recall 0.9857, range 0, timely 1.0 |
 
 ### Current understanding
 
@@ -86,6 +87,7 @@ The branch now contains a real reactive ReAct implementation, packaged prompts, 
 | E22 | Does the shorter-budget hardened baseline preserve measurability on dev? | C10 | Run `20261125T122958-509561Z-6d88a6eb5c98` completed all 12 episodes with no infrastructure failures, all criteria at least valid, and precision/recall/timeliness 1.0. Success remained zero; mean latency fell to 81.7 seconds: [db0 dev result](evidence/appworld-dev-hardened-db0-result.json). | Use the same bounded overrides for final dev/full runs. A capacity rejection for the first `5acf8f2` submission occurred before run allocation; retry after C10 completes and do not record it as a validation run. |
 | E23 | Does the final reviewed revision pass its repeated dev gate? | C11 | Run `20261125T125107-110408Z-3a9489d3405b` completed all 12 episodes with no infrastructure failures and every criterion at least valid. All failures were flagged and mean latency was 81.6 seconds: [final dev result](evidence/appworld-dev-final-result.json). | Spec AC6 is satisfied for the final code revision. Submit full validation with identical bounded overrides; zero task success remains an explicit quality gap. |
 | E24 | Does the complete portability/version/wheel CI matrix pass? | C9 | GitHub Actions run `45618051706` passed all six Python 3.11–3.13 × Pydantic AI 2.66/2.74 jobs, including tests, Ruff, build, installed-wheel episode, and entry points: [CI results](evidence/ci-matrix-results.json). | Keep this workflow required for the PR and any review changes. |
+| E25 | What is the baseline's authoritative full-validation outcome? | C12 | Run `20261125T132059-063795Z-2c936467dd77` completed all 630 episodes with no infrastructure failures or invalid flags. VM1 was 0; precision/recall/range/timeliness were 1.0/0.9857/0/1.0. The implementation is valid but not accepted: [full result](evidence/appworld-full-baseline-result.json). | Satisfy the increment's at-least-valid gate and open the PR. Keep the investigation active and prioritize actual task-solving quality in the next candidate; do not claim project completion or useful consistency from zero successes. |
 
 ### Next candidates
 
@@ -101,7 +103,7 @@ The branch now contains a real reactive ReAct implementation, packaged prompts, 
 - [ ] Compare one fixed public onboarding demonstration and other quality improvements on a future completed dev population; fenced-code extraction remains unnecessary unless both structured modes fail.
 - [x] Select the initial prompt/history/self-assessment design and create the implementation spec with explicit decision gates.
 - [x] Revalidate the independently reviewed/hardened revision on the repeated dev population.
-- [ ] Record an authoritative full-validation result for the latest pushed revision.
+- [x] Record an authoritative full-validation result for the latest pushed revision.
 
 ### Linked specs
 
