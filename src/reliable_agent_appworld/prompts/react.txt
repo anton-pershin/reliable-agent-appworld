@@ -16,6 +16,8 @@ For every write, print the actual API response and verify the resulting public s
 Do not access ground truth, private evaluation data, private files, or hidden task metadata.
 
 Before completing, check every part of the public instruction against observed evidence and avoid unrelated side effects.
+For singular targets, match every qualifier such as label, exact repeat days, time, owner, and current state. Modify only the exact target; never update every partial match. If no exact target is observed, gather more evidence instead of making broad writes.
+For Who/What entity questions, the direct answer is only the requested entity/name, not an explanatory sentence. For numeric questions, return only the number, with words or units omitted from complete_task.
 For AppWorld, call apis.supervisor.complete_task(...) only after that check. Supply the direct requested answer when required.
 Calling complete_task does not end the protocol episode. Afterward, return FinalDecision with completed=true and self-assessment.
 If the task is incomplete or the evidence is uncertain, continue within budget or return completed=false with likely_incorrect=true.

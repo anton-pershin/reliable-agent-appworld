@@ -254,6 +254,15 @@ def _direct_answer(objective: str, value: str) -> str | int | float:
     if re.match(r"^\s*who\b", objective, re.IGNORECASE):
         stripped = re.split(r"\s+with\s+\d", stripped, maxsplit=1)[0].rstrip()
         stripped = re.sub(r"\s*\([^()]*\)\s*$", "", stripped).rstrip()
+        if re.search(r"\s+is\s+", stripped, re.IGNORECASE):
+            left, right = re.split(
+                r"\s+is\s+", stripped, maxsplit=1, flags=re.IGNORECASE
+            )
+            if left.strip().lower() in {"it", "this", "answer", "the answer"}:
+                stripped = right
+            else:
+                stripped = left if len(left.split()) <= len(right.split()) else right
+        stripped = stripped.strip(" ,").rstrip(".")
     if not stripped:
         return stripped
     if (
@@ -267,9 +276,13 @@ def _direct_answer(objective: str, value: str) -> str | int | float:
             pass
     numeric_match = re.fullmatch(r"[-+]?\$?\d[\d,]*(?:\.\d+)?", stripped)
     numeric = numeric_match.group(0) if numeric_match else None
-    if numeric is None and re.match(r"^\s*how\b", objective, re.IGNORECASE):
-        match = re.search(r"[-+]?\$?\d[\d,]*(?:\.\d+)?", stripped)
-        numeric = match.group(0) if match else None
+    numeric_objective = re.match(r"^\s*how\b", objective, re.IGNORECASE) or re.search(
+        r"\b(?:total|cost|amount|duration)\b", objective, re.IGNORECASE
+    )
+    if numeric is None and numeric_objective:
+        currency = re.findall(r"[-+]?\$\d[\d,]*(?:\.\d+)?", stripped)
+        numbers = re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", stripped)
+        numeric = currency[-1] if currency else (numbers[-1] if numbers else None)
     if numeric is not None:
         normalized = str(numeric).replace("$", "").replace(",", "")
         try:

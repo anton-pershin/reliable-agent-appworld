@@ -1,0 +1,42 @@
+{
+  "run_id": "20261126T103514-729814Z-528a1f14bd10",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T103514-729814Z-528a1f14bd10",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "2e0e15f35b3b15b030af209ece11f79714080054",
+  "candidate": "N: direct answers/relevant apps/DateTime-contact semantics + single 60-second model cap",
+  "operational_incident": {
+    "local_ssh_tunnel_expired": true,
+    "remote_model_server_remained_healthy": true,
+    "tunnel_restored": true,
+    "affected_episodes": ["13547f5_1", "3d9a636_1"],
+    "observed_error": "ModelConnectionError at 2026-11-26T10:45:21Z",
+    "decision": "Treat this run as provisional and rerun the exact candidate cleanly."
+  },
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.16666666666666666},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.7},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 12,
+    "successes": 2,
+    "successful_tasks": ["e7a10f8_1", "afc4005_1"],
+    "completed_true": 5,
+    "incorrect_confident_completions": 3,
+    "mean_actions": 3.5833,
+    "mean_seconds": 108.8591,
+    "tunnel_connection_failures": 2
+  },
+  "successful_public_traces": [
+    "The playlist task found the nine-song longest playlist, summed all durations to 2032 seconds, rounded to 34, and submitted numeric answer 34.",
+    "The workout task used the environment date 2023-05-18/Thursday and submitted numeric answer 60 from the Weekly Exercise Plan."
+  ],
+  "remaining_public_failures": [
+    "Who normalization retained a descriptive sentence prefix instead of Eliana Harper.",
+    "The alarm task updated every partial weekday match rather than only the Wake Up target.",
+    "Venmo normalization selected year 2023 from a sentence instead of the $121 amount; relationship/contact logic also remained uncertain."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "The 60-second cap and focused semantics show meaningful improvement despite two incident-affected failures. Fix answer sentence/year extraction and exact singular-target guidance; use the clean N rerun and subsequent candidate for selection."
+}

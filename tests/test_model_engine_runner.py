@@ -161,7 +161,7 @@ async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
     assert prompt["remaining_episode_seconds"] == 12.3
     assert prompt["task"]["objective"] == "Print 42"
     assert "instruction" not in prompt["task"]["input"]
-    assert prompt["prompt_version"] == "react-v2.2-verified"
+    assert prompt["prompt_version"] == "react-v2.3-verified"
 
 
 async def test_pydantic_schema_validation_repair_is_retried_and_logged():
