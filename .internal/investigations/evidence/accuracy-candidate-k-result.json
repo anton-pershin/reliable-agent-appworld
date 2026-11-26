@@ -1,0 +1,32 @@
+{
+  "run_id": "20261126T093834-399744Z-98b0163ed4df",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T093834-399744Z-98b0163ed4df",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "f4e35085842074cf2e96bbafae0c359922dea5fb",
+  "candidate": "K: authenticated discovery bootstrap + automatic completion + final-decision reserve",
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.16666666666666666},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 1.0},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 6,
+    "successes": 1,
+    "successful_task_id": "b119b1f_1",
+    "successful_episode_seconds": 53.1935,
+    "mean_actions": 2.1667,
+    "mean_seconds": 107.8416,
+    "model_request_timeout_stops": 4,
+    "runner_timeout_stops": 1
+  },
+  "public_trace_findings": [
+    "Authenticated onboarding saved relevant app tokens in every episode without printing secrets.",
+    "Navigation succeeded in four actions and 53.2 seconds, the fastest successful candidate so far.",
+    "Four episodes exhausted all outer model retries after onboarding before making another action; identical timeout retries consumed roughly 90 seconds.",
+    "Automatic login removed setup actions but did not improve model reasoning about public artist searches or documentation selection.",
+    "The private playlist task collected all playlist song IDs in one action, then stalled before retrieving song details."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Keep authenticated onboarding as an optional private-context mechanism, but reduce prompt/output latency and disable identical outer timeout retries for the next candidate. Adaptive onboarding remains necessary because public answer tasks regressed under global bootstrap."
+}

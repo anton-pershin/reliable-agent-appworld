@@ -191,6 +191,7 @@ def test_appworld_discovery_action_uses_only_public_objective():
         "Keep going to the previous song until Luna Starlight plays.",
         "How many playlists do I have?",
         "Add these songs to my queue.",
+        "Play the least listened song from this public album.",
     ):
         private_state = TaskState(
             task=task().model_copy(

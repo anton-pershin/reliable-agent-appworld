@@ -141,7 +141,9 @@ def appworld_discovery_action(
     objective = public_input.get("instruction") if isinstance(public_input, dict) else None
     if not isinstance(objective, str) or not objective:
         return None
-    if private_only and _PRIVATE_CONTEXT.search(objective) is None:
+    if private_only and (
+        _PRIVATE_CONTEXT.search(objective) is None and _objective_requests_answer(objective)
+    ):
         return None
     authentication = '''
 # Establish permitted public sessions once; retain tokens without printing secrets.

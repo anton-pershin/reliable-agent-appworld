@@ -11,6 +11,7 @@ If authorization fails after login, inspect the detailed docs and verify that th
 Use Supervisor APIs for permitted account information; never invent identifiers, credentials, values, dates, or results.
 Print the values needed for the next decision, paginate fully, use environment time, and prefer small validated changes.
 Execution errors can occur after partial side effects. Inspect the public error and revise deliberately; do not blindly repeat writes.
+For every write, print the actual API response and verify the resulting public state when feasible. A custom success message or an unprinted call is not evidence that the write succeeded.
 Do not access ground truth, private evaluation data, private files, or hidden task metadata.
 
 Before completing, check every part of the public instruction against observed evidence and avoid unrelated side effects.
