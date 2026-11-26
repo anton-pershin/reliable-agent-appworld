@@ -111,8 +111,32 @@ class DecisionEngine:
         return self.controlled_stop("The model could not produce a valid task decision")
 
     def record_attempt(self, state: TaskState, attempt) -> None:
+        previous_call_ids = [
+            previous.call_id for previous in state.attempts if previous.action == attempt.action
+        ]
         state.record_attempt(attempt)
         state.completion_observed = self._completion_observed(state)
+        if previous_call_ids:
+            state.validation_feedback.append(
+                f"Action {attempt.call_id} exactly repeats {', '.join(previous_call_ids[-3:])}. "
+                "Repeated reads/documentation do not add evidence. Choose a different, targeted "
+                "next step; repeat only an intentional state-advancing operation and verify its new state."
+            )
+        code = attempt.action.arguments.get("code")
+        if (
+            isinstance(code, str)
+            and "print(" not in code
+            and any(
+                result.observation.get("output") == "Execution successful."
+                for result in attempt.results
+            )
+        ):
+            state.validation_feedback.append(
+                f"Action {attempt.call_id} printed no returned values, so its observation has no data. "
+                "If it was an intentional write, proceed to verification/completion; otherwise inspect "
+                "a saved variable or make a different call and print the relevant result. Do not repeat "
+                "the same unprinted call merely to observe it."
+            )
         self.logger.emit(
             "action_attempt_recorded",
             call_id=attempt.call_id,
