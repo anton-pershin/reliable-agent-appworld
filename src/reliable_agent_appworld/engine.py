@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 
 import jsonschema
 
@@ -12,11 +13,16 @@ from .observability import EventLogger
 
 class DecisionEngine:
     def __init__(
-        self, config: AgentConfig, model: DecisionModel, logger: EventLogger
+        self,
+        config: AgentConfig,
+        model: DecisionModel,
+        logger: EventLogger,
+        completion_check: Callable[[TaskState], bool] | None = None,
     ) -> None:
         self.config = config
         self.model = model
         self.logger = logger
+        self.completion_check = completion_check
 
     def controlled_stop(self, reason: str) -> FinalDecision:
         return controlled_failure(self.logger.redact_text(reason))
@@ -29,7 +35,17 @@ class DecisionEngine:
         schema = tools[action.name].arguments_schema
         jsonschema.validate(action.arguments, schema)
 
+    def _completion_observed(self, state: TaskState) -> bool:
+        if self.completion_check is not None:
+            return self.completion_check(state)
+        return bool(state.attempts)
+
     async def next_decision(self, state: TaskState, remaining_seconds: float) -> Decision:
+        if state.pending_final is not None and self._completion_observed(state):
+            decision = state.pending_final
+            state.pending_final = None
+            self.logger.emit("deferred_final_released", call_id=state.attempts[-1].call_id)
+            return decision
         deadline = time.monotonic() + remaining_seconds
         for attempt in range(self.config.output_retries + 1):
             remaining = deadline - time.monotonic()
@@ -50,6 +66,7 @@ class DecisionEngine:
                     continue
                 return decision
             if not decision.completed:
+                state.pending_final = None
                 if not decision.likely_incorrect:
                     decision = decision.model_copy(update={"likely_incorrect": True})
                 if attempt < self.config.output_retries:
@@ -58,16 +75,17 @@ class DecisionEngine:
                     )
                     continue
                 return decision
-            if not state.attempts:
-                if attempt < self.config.output_retries:
-                    state.validation_feedback.append(
-                        "Completion requires public task evidence and, for AppWorld, a complete_task action first."
-                    )
-                    continue
-                return self.controlled_stop(
-                    "The model repeatedly declared completion without public task evidence"
+            if self._completion_observed(state):
+                return decision
+            state.pending_final = decision
+            if attempt < self.config.output_retries:
+                state.validation_feedback.append(
+                    "A successful final is not yet supported by the required public completion observation. Your next action must obtain that evidence now; for AppWorld call apis.supervisor.complete_task(...) with a concise direct answer only for a question, then print its result."
                 )
-            return decision
+                continue
+            return self.controlled_stop(
+                "The model repeatedly declared completion without public task evidence or the required completion observation"
+            )
         return self.controlled_stop("The model could not produce a valid task decision")
 
     def record_attempt(self, state: TaskState, attempt) -> None:

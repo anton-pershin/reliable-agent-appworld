@@ -5,6 +5,7 @@ import io
 import json
 import math
 import os
+import re
 import sys
 import time
 from collections.abc import Sequence
@@ -22,6 +23,7 @@ from .contracts import (
     ObservationMessage,
     Task,
     TaskMessage,
+    TaskState,
 )
 
 MAX_PROTOCOL_BYTES = 1_000_000
@@ -76,6 +78,23 @@ def decode_appworld_public_input(task: Task) -> Task:
         payload, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False
     )
     return task.model_copy(update={"input": normalized})
+
+
+def appworld_completion_observed(state: TaskState) -> bool:
+    """Recognize public successful completion without coupling the generic engine to AppWorld."""
+    for attempt in state.attempts:
+        code = attempt.action.arguments.get("code")
+        if not isinstance(code, str) or "apis.supervisor.complete_task" not in code:
+            continue
+        if re.search(
+            r"complete_task\s*\([^)]*status\s*=\s*(['\"])fail\1", code, re.DOTALL
+        ):
+            continue
+        for result in attempt.results:
+            output = result.observation.get("output", "")
+            if result.status == "ok" and "Marked the active task complete." in str(output):
+                return True
+    return False
 
 
 def _file_descriptor(stream: BinaryIO) -> int | None:

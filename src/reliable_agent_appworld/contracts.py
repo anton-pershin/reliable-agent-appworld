@@ -175,6 +175,7 @@ class TaskState(ContractModel):
     validation_feedback: list[str] = Field(default_factory=list)
     history_trimmed: bool = False
     model_requests: int = 0
+    pending_final: FinalDecision | None = None
 
     @property
     def action_attempts(self) -> int:

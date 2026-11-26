@@ -13,7 +13,12 @@ from .deadline import EpisodeDeadline
 from .engine import DecisionEngine
 from .model import PydanticAIModelClient
 from .observability import BoundedRedactingStream, EventLogger
-from .protocol import JsonLinesToolExecutor, JsonLinesTransport, decode_appworld_public_input
+from .protocol import (
+    JsonLinesToolExecutor,
+    JsonLinesTransport,
+    appworld_completion_observed,
+    decode_appworld_public_input,
+)
 from .runner import TaskRunner
 
 
@@ -44,7 +49,12 @@ async def run_episode(config: AgentConfig) -> None:
             task = decode_appworld_public_input(task)
             logger.emit("appworld_public_input_decoded", task_id=task.id)
         model = PydanticAIModelClient(config, logger)
-        engine = DecisionEngine(config, model, logger)
+        completion_check = (
+            appworld_completion_observed
+            if any(tool.name == "execute_code" for tool in task.tools)
+            else None
+        )
+        engine = DecisionEngine(config, model, logger, completion_check=completion_check)
         executor = JsonLinesToolExecutor(transport)
         runner = TaskRunner(config, engine, executor, logger)
         final = await runner.run(task, deadline=deadline)

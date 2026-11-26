@@ -268,6 +268,15 @@ def test_documented_model_and_deadline_defaults():
     }
 
 
+def test_thinking_defaults_on_and_supports_environment_and_cli_overrides(monkeypatch):
+    assert load_config([]).thinking is True
+    monkeypatch.setenv(ENV_PREFIX + "THINKING", "false")
+    assert load_config([]).thinking is False
+    assert load_config(["--thinking"]).thinking is True
+    monkeypatch.setenv(ENV_PREFIX + "THINKING", "true")
+    assert load_config(["--no-thinking"]).thinking is False
+
+
 def test_cli_overrides_environment_and_preserves_unspecified_environment_values(monkeypatch):
     monkeypatch.setenv(ENV_PREFIX + "MODEL", "env-model")
     monkeypatch.setenv(ENV_PREFIX + "OUTPUT_MODE", "text")

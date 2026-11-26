@@ -147,6 +147,20 @@ async def test_structured_action_and_sampling_without_seed():
     assert response["private_reasoning"] == "not-retained"
 
 
+async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
+    cfg = config(thinking=False)
+    event_logger, _ = logger(cfg)
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(lambda *_: None))
+
+    settings = client._settings()
+    prompt = json.loads(client.prompt(TaskState(task=task()), 12.34))
+
+    assert settings["extra_body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert client._public_settings()["thinking"] is False
+    assert prompt["remaining_episode_seconds"] == 12.3
+    assert prompt["prompt_version"] == "react-v3"
+
+
 async def test_pydantic_schema_validation_repair_is_retried_and_logged():
     cfg = config(output_retries=1)
     event_logger, stream = logger(cfg)
@@ -251,6 +265,45 @@ async def test_engine_rejects_premature_completion_and_normalizes_failure_flag()
     result = await engine.next_decision(state, 30)
     assert isinstance(result, FinalDecision)
     assert result.likely_incorrect is True
+
+
+async def test_completion_check_defers_and_releases_final_without_extra_model_call():
+    cfg = config(output_retries=1)
+    event_logger, _ = logger(cfg)
+    model = QueueModel(final(), action("print(apis.supervisor.complete_task(answer='42'))"))
+    engine = DecisionEngine(
+        cfg,
+        model,
+        event_logger,
+        completion_check=lambda state: any(
+            "Marked the active task complete." in str(result.observation.get("output", ""))
+            for attempt in state.attempts
+            for result in attempt.results
+        ),
+    )
+    state = TaskState(task=task())
+
+    first = await engine.next_decision(state, 30)
+    assert isinstance(first, ActionDecision)
+    assert state.pending_final is not None
+
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-1",
+            action=first.action,
+            results=[
+                ActionResult(
+                    status="ok",
+                    observation={"output": "Marked the active task complete."},
+                )
+            ],
+        )
+    )
+    released = await engine.next_decision(state, 30)
+    assert isinstance(released, FinalDecision)
+    assert released.completed is True
+    assert state.pending_final is None
+    assert not model.decisions
 
 
 async def test_engine_repels_give_up_after_recoverable_attempts():

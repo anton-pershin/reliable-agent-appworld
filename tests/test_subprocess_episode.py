@@ -24,7 +24,8 @@ class FakeProvider:
                 payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 provider.requests.append(payload)
                 tools = payload.get("tools") or []
-                action = len(provider.requests) == 1
+                request_number = len(provider.requests)
+                action = request_number in (1, 3)
                 fragment = "ActionDecision" if action else "FinalDecision"
                 tool_names = [
                     item.get("function", {}).get("name") or item.get("name", "")
@@ -36,7 +37,13 @@ class FakeProvider:
                         "kind": "action",
                         "action": {
                             "name": "execute_code",
-                            "arguments": {"code": "print('subprocess-ok')"},
+                            "arguments": {
+                                "code": (
+                                    "print('subprocess-ok')"
+                                    if request_number == 1
+                                    else "print(apis.supervisor.complete_task(answer='subprocess-ok'))"
+                                )
+                            },
                         },
                     }
                     if action
@@ -232,12 +239,33 @@ def test_installed_style_subprocess_protocol_has_no_provider_banner():
             + "\n"
         )
         process.stdin.flush()
+        completion_action = ActionsMessage.model_validate_json(readline(process))
+        assert completion_action.call_id == "call-2"
+        assert "complete_task" in completion_action.actions[0].arguments["code"]
+        process.stdin.write(
+            json.dumps(
+                {
+                    "protocol_version": 1,
+                    "type": "observation",
+                    "call_id": completion_action.call_id,
+                    "results": [
+                        {
+                            "status": "ok",
+                            "observation": {"output": "Marked the active task complete.\n"},
+                            "error": None,
+                        }
+                    ],
+                }
+            )
+            + "\n"
+        )
+        process.stdin.flush()
         final = FinalMessage.model_validate_json(readline(process))
         assert final.completed is True
         assert final.likely_incorrect is False
         assert process.wait(timeout=15) == 0
         assert process.stdout.read() == ""
-        assert len(provider.requests) == 2
+        assert len(provider.requests) == 3
         for request in provider.requests:
             assert request.get("seed") is None
             assert request["top_k"] == 20

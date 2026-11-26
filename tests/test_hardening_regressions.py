@@ -31,6 +31,7 @@ from reliable_agent_appworld.observability import BoundedRedactingStream, EventL
 from reliable_agent_appworld.protocol import (
     JsonLinesTransport,
     ProtocolError,
+    appworld_completion_observed,
     decode_appworld_public_input,
 )
 from reliable_agent_appworld.runner import TaskRunner
@@ -89,6 +90,56 @@ async def test_persistent_no_evidence_success_becomes_controlled_failure(retries
     assert result.completed is False
     assert result.likely_incorrect is True
     assert "without public task evidence" in result.reason
+
+
+def test_appworld_completion_check_requires_actual_successful_call_not_docs_or_fail():
+    state = TaskState(task=task())
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-1",
+            action=ActionRequest(
+                name="execute_code",
+                arguments={
+                    "code": "print(apis.api_docs.show_api_doc(app_name='supervisor', api_name='complete_task'))"
+                },
+            ),
+            results=[ActionResult(status="ok", observation={"output": "documentation"})],
+        )
+    )
+    assert not appworld_completion_observed(state)
+
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-2",
+            action=ActionRequest(
+                name="execute_code",
+                arguments={"code": "apis.supervisor.complete_task(status='fail')"},
+            ),
+            results=[
+                ActionResult(
+                    status="ok", observation={"output": "Marked the active task complete."}
+                )
+            ],
+        )
+    )
+    assert not appworld_completion_observed(state)
+
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-3",
+            action=ActionRequest(
+                name="execute_code",
+                arguments={"code": "print(apis.supervisor.complete_task(answer='42'))"},
+            ),
+            results=[
+                ActionResult(
+                    status="ok",
+                    observation={"output": '{"message": "Marked the active task complete."}'},
+                )
+            ],
+        )
+    )
+    assert appworld_completion_observed(state)
 
 
 async def test_history_exact_budget_retains_latest_multibyte_attempt():
