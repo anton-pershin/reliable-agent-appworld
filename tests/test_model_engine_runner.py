@@ -464,6 +464,36 @@ async def test_runner_action_budget_requests_final_without_another_execution():
     assert len(executor.calls) == 1
 
 
+async def test_decision_reserve_switches_to_final_only_mode():
+    now = [0.0]
+
+    class AdvancingExecutor:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, call_id, actions, timeout):
+            self.calls += 1
+            now[0] += 0.06
+            return [ActionResult(status="ok", observation={"output": "work"})]
+
+    cfg = config(
+        episode_timeout_seconds=0.2,
+        final_response_reserve_seconds=0.05,
+        decision_reserve_seconds=0.1,
+    )
+    event_logger, _ = logger(cfg)
+    engine = DecisionEngine(cfg, QueueModel(action(), final(False, True)), event_logger)
+    executor = AdvancingExecutor()
+    runner = TaskRunner(cfg, engine, executor, event_logger, clock=lambda: now[0])
+
+    result = await runner.run(task())
+
+    assert result.completed is False
+    assert result.reason == "Cannot complete"
+    assert executor.calls == 1
+    assert any("Finalization is now required" in item for item in runner.last_state.validation_feedback)
+
+
 async def test_runner_releases_deferred_final_after_last_allowed_action():
     cfg = config(action_budget=1, output_retries=1)
     event_logger, _ = logger(cfg)

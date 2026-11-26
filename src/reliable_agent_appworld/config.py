@@ -19,6 +19,7 @@ FLOAT_FIELDS = {
     "episode_timeout_seconds",
     "model_timeout_seconds",
     "final_response_reserve_seconds",
+    "decision_reserve_seconds",
 }
 
 
@@ -42,6 +43,7 @@ class AgentConfig(ContractModel):
     action_budget: int = Field(default=50, ge=1)
     model_timeout_seconds: float = Field(default=120, gt=0, allow_inf_nan=False)
     final_response_reserve_seconds: float = Field(default=25, ge=0, allow_inf_nan=False)
+    decision_reserve_seconds: float = Field(default=0, ge=0, allow_inf_nan=False)
 
     max_observation_chars: int = Field(default=12000, ge=100)
     max_history_chars: int = Field(default=24000, ge=1000)
@@ -53,6 +55,11 @@ class AgentConfig(ContractModel):
     def validate_budgets(self) -> AgentConfig:
         if self.final_response_reserve_seconds >= self.episode_timeout_seconds:
             raise ValueError("final_response_reserve_seconds must be below episode_timeout_seconds")
+        if (
+            self.final_response_reserve_seconds + self.decision_reserve_seconds
+            >= self.episode_timeout_seconds
+        ):
+            raise ValueError("response and decision reserves must leave usable episode time")
         if self.max_observation_chars > self.max_history_chars:
             raise ValueError("max_observation_chars cannot exceed max_history_chars")
         return self
@@ -119,6 +126,7 @@ def load_config(argv: Sequence[str] | None = None) -> AgentConfig:
         "episode_timeout_seconds",
         "model_timeout_seconds",
         "final_response_reserve_seconds",
+        "decision_reserve_seconds",
     ):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=argparse.SUPPRESS)
     namespace = parser.parse_args(argv)

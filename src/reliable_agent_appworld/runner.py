@@ -50,6 +50,7 @@ class TaskRunner:
         self.last_state = state
         self.logger.emit("task_started", task=task.model_dump(mode="json"))
         try:
+            finalization_announced = False
             while True:
                 deferred = self.engine.release_deferred_final(state)
                 if deferred is not None:
@@ -63,7 +64,20 @@ class TaskRunner:
                 usable = remaining - self.config.final_response_reserve_seconds
                 if usable <= 0:
                     return await self._finish("Final-response reserve reached")
-                allow_actions = state.action_attempts < self.config.action_budget
+                allow_actions = (
+                    state.action_attempts < self.config.action_budget
+                    and remaining
+                    > self.config.final_response_reserve_seconds
+                    + self.config.decision_reserve_seconds
+                )
+                if not allow_actions and not finalization_announced:
+                    state.validation_feedback.append(
+                        "Finalization is now required. Stop discovery and further ordinary actions. "
+                        "Use existing public evidence to return FinalDecision: completed=true only if "
+                        "the objective is verifiably complete, otherwise completed=false with "
+                        "likely_incorrect=true. Required completion tooling will handle a valid success claim."
+                    )
+                    finalization_announced = True
                 decision = await asyncio.wait_for(
                     self.engine.next_decision(state, usable, allow_actions=allow_actions),
                     timeout=usable,

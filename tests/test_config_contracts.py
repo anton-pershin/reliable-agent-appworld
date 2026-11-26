@@ -250,6 +250,7 @@ def test_documented_model_and_deadline_defaults():
         "action_budget",
         "model_timeout_seconds",
         "final_response_reserve_seconds",
+        "decision_reserve_seconds",
     )
 
     assert {name: getattr(config, name) for name in names} == {
@@ -265,6 +266,7 @@ def test_documented_model_and_deadline_defaults():
         "action_budget": 50,
         "model_timeout_seconds": 120.0,
         "final_response_reserve_seconds": 25.0,
+        "decision_reserve_seconds": 0.0,
     }
 
 
@@ -437,6 +439,15 @@ def test_public_config_is_json_safe_and_excludes_credentials(monkeypatch):
 def test_invalid_individual_budgets_are_rejected(field, value):
     with pytest.raises(ValidationError):
         AgentConfig.model_validate({field: value})
+
+
+def test_combined_decision_and_response_reserves_leave_usable_time():
+    with pytest.raises(ValidationError, match="must leave usable episode time"):
+        AgentConfig(
+            episode_timeout_seconds=100,
+            final_response_reserve_seconds=20,
+            decision_reserve_seconds=80,
+        )
 
 
 @pytest.mark.parametrize("reserve", [100, 100.01])
