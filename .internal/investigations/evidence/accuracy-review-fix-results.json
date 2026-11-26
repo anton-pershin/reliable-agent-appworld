@@ -1,0 +1,39 @@
+{
+  "observed_on": "2026-11-26",
+  "solution_commit": "c4a8a5c9100456169649c5fd712d9cbb134b257a",
+  "review_commit": "c4a8a5c9100456169649c5fd712d9cbb134b257a",
+  "tests": {
+    "collected_and_passed_per_supported_version": 225,
+    "pydantic_ai_2_66": "passed",
+    "pydantic_ai_2_74": "passed",
+    "ruff": "All checks passed"
+  },
+  "review_fix_coverage": [
+    "generic engine feedback contains no AppWorld syntax",
+    "Find/Show/preambled/quoted answer classification and normalization",
+    "raw requester/import apis/credential-printing action rejection",
+    "sanitized fake-API onboarding execution with phone/email/token/contact assertions",
+    "standalone JWT and unquoted-token redaction",
+    "zero-work automatic completion rejection",
+    "failed/uncertain completion invalidation and stale A/B suppression",
+    "exact deferred completion-call pairing",
+    "bootstrap and ordinary-action reserve gating with typed automatic completion exemption",
+    "completion milestone after history trimming and cross-attempt marker rejection",
+    "single-timeout/no-identical-retry behavior"
+  ],
+  "runtime_only_wheel": {
+    "pytest_installed": false,
+    "private_action_no_answer": "passed",
+    "private_answer_direct_answer": "passed",
+    "provider_calls_per_case": 2,
+    "configuration_overrides_cleared": true,
+    "credential_canaries_absent_from_stdout_and_stderr": true,
+    "protocol_stdout_jsonl_only": true
+  },
+  "remaining_gates": [
+    "independent re-review closure",
+    "corrected-runtime default S3",
+    "final six-job CI evidence",
+    "authoritative full validation"
+  ]
+}
