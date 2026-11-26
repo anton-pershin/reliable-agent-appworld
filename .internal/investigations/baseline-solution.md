@@ -131,3 +131,4 @@ The selected accuracy candidate uses adaptive public onboarding, verified automa
 ### Linked specs
 
 - `../specs/01-baseline-agent-general-spec.md` defines the initial reactive implementation, local acceptance checks, and model-backed smoke/dev diagnostics.
+- `../specs/02-verified-react-accuracy-general-spec.md` freezes the selected verified-completion/onboarding runtime and its final default/review/full-validation gates.
