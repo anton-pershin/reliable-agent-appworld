@@ -16,6 +16,7 @@ from .observability import BoundedRedactingStream, EventLogger
 from .protocol import (
     JsonLinesToolExecutor,
     JsonLinesTransport,
+    appworld_completion_action,
     appworld_completion_observed,
     appworld_discovery_action,
     decode_appworld_public_input,
@@ -63,6 +64,11 @@ async def run_episode(config: AgentConfig) -> None:
             bootstrap_action=(
                 appworld_discovery_action
                 if config.bootstrap_discovery and completion_check is not None
+                else None
+            ),
+            completion_action=(
+                appworld_completion_action
+                if config.automatic_completion and completion_check is not None
                 else None
             ),
         )

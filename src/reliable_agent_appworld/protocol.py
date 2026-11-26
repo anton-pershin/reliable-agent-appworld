@@ -6,6 +6,7 @@ import io
 import json
 import math
 import os
+import re
 import sys
 import time
 from collections.abc import Sequence
@@ -168,6 +169,61 @@ print("Relevant app login schemas:")
 for app_name in app_names[:4]:
     print(compact_doc(apis.api_docs.show_api_doc(app_name=app_name, api_name="login")))
 '''
+    return ActionDecision(
+        action=ActionRequest(name="execute_code", arguments={"code": code})
+    )
+
+
+_ANSWER_QUESTION = re.compile(
+    r"^\s*(?:what|who|whom|whose|which|when|where|why|how|is|are|was|were|do|does|did|can|could|would|should)\b",
+    re.IGNORECASE,
+)
+_ANSWER_IMPERATIVE = re.compile(
+    r"^\s*(?:give\s+me|tell\s+me|show\s+me|list|provide|calculate|compute|determine)\b",
+    re.IGNORECASE,
+)
+
+
+def _objective_requests_answer(objective: str) -> bool:
+    return (
+        objective.rstrip().endswith("?")
+        or _ANSWER_QUESTION.match(objective) is not None
+        or _ANSWER_IMPERATIVE.match(objective) is not None
+    )
+
+
+def _direct_answer(value: str) -> str | int | float:
+    stripped = value.strip()
+    if not stripped:
+        return stripped
+    if re.fullmatch(r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)", stripped) or (
+        len(stripped) >= 2
+        and stripped[0] == stripped[-1]
+        and stripped[0] in {'"', "'"}
+    ):
+        try:
+            return json.loads(stripped) if stripped[0] != "'" else stripped[1:-1]
+        except json.JSONDecodeError:
+            pass
+    return stripped
+
+
+def appworld_completion_action(
+    state: TaskState, decision: FinalDecision
+) -> ActionDecision | None:
+    """Translate a model completion claim into its required public AppWorld call."""
+    try:
+        public_input = json.loads(state.task.input)
+    except json.JSONDecodeError:
+        return None
+    objective = public_input.get("instruction") if isinstance(public_input, dict) else None
+    if not isinstance(objective, str) or not objective:
+        return None
+    if _objective_requests_answer(objective):
+        answer = json.dumps(_direct_answer(decision.answer), ensure_ascii=False)
+        code = f"print(apis.supervisor.complete_task(answer={answer}))"
+    else:
+        code = "print(apis.supervisor.complete_task())"
     return ActionDecision(
         action=ActionRequest(name="execute_code", arguments={"code": code})
     )

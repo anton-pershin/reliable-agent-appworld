@@ -1,0 +1,31 @@
+{
+  "run_id": "20261126T084638-976709Z-391746b581dc",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T084638-976709Z-391746b581dc",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "ec2d1696f1e72d0709db6b4ea9e1d8d95cf9b908",
+  "candidate": "E: original concise react-v2 prompt with engineering/completion fixes, thinking, 180-second episode",
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.0},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 1.0},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 6,
+    "successes": 0,
+    "completed_true": 0,
+    "mean_actions": 9.6667,
+    "mean_seconds": 162.7371,
+    "timeout_stops": 5,
+    "persistent_unsupported_completion_stops": 1,
+    "complete_task_attempts": 0
+  },
+  "public_trace_findings": [
+    "The artist-extremum episode repeated the baseline's grounded answer workflow, but when its successful final was deferred it repeatedly returned FinalDecision instead of the required completion action.",
+    "The album-play episode correctly identified song 2 and executed play_music(song_id=2), then timed out before completion/finalization.",
+    "The private/authenticated tasks continued to lose turns to requester misuse, broad documentation, and missing token propagation.",
+    "The original prompt therefore did not solve completion or latency; prior prompt-only revisions were not the sole regression."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Replace completion reprompts with an injected deterministic completion action followed by observed-result verification. Combine it with the opt-in public discovery bootstrap for the next six-task policy run, because neither prompt-only nor time-only candidates earned expansion."
+}

@@ -367,6 +367,48 @@ async def test_optional_bootstrap_action_precedes_model_without_consuming_it():
     assert not model.decisions
 
 
+async def test_automatic_completion_action_skips_ignored_reprompt_and_releases_final():
+    cfg = config()
+    event_logger, _ = logger(cfg)
+    model = QueueModel(final())
+    engine = DecisionEngine(
+        cfg,
+        model,
+        event_logger,
+        completion_check=lambda state: any(
+            "Marked the active task complete." in str(result.observation.get("output", ""))
+            for attempt in state.attempts
+            for result in attempt.results
+        ),
+        completion_action=lambda state, decision: action(
+            "print(apis.supervisor.complete_task(answer='42'))"
+        ),
+    )
+    state = TaskState(task=task())
+
+    completion = await engine.next_decision(state, 30)
+    assert isinstance(completion, ActionDecision)
+    assert "complete_task" in completion.action.arguments["code"]
+    assert state.pending_final is not None
+    assert not model.decisions
+
+    engine.record_attempt(
+        state,
+        ActionAttempt(
+            call_id="call-1",
+            action=completion.action,
+            results=[
+                ActionResult(
+                    status="ok", observation={"output": "Marked the active task complete."}
+                )
+            ],
+        ),
+    )
+    released = await engine.next_decision(state, 30)
+    assert isinstance(released, FinalDecision)
+    assert released.completed is True
+
+
 async def test_engine_repels_give_up_after_recoverable_attempts():
     cfg = config()
     event_logger, _ = logger(cfg)

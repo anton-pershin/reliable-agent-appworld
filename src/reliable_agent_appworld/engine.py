@@ -19,12 +19,15 @@ class DecisionEngine:
         logger: EventLogger,
         completion_check: Callable[[TaskState], bool] | None = None,
         bootstrap_action: Callable[[TaskState], ActionDecision | None] | None = None,
+        completion_action: Callable[[TaskState, FinalDecision], ActionDecision | None]
+        | None = None,
     ) -> None:
         self.config = config
         self.model = model
         self.logger = logger
         self.completion_check = completion_check
         self.bootstrap_action = bootstrap_action
+        self.completion_action = completion_action
 
     def controlled_stop(self, reason: str) -> FinalDecision:
         return controlled_failure(self.logger.redact_text(reason))
@@ -110,6 +113,15 @@ class DecisionEngine:
             if self._completion_observed(state):
                 return decision
             state.pending_final = decision
+            if self.completion_action is not None:
+                completion = self.completion_action(state, decision)
+                if completion is not None:
+                    self._validate_action(state, completion)
+                    self.logger.emit(
+                        "completion_action_selected",
+                        action=completion.action.model_dump(mode="json"),
+                    )
+                    return completion
             if attempt < self.config.output_retries:
                 state.validation_feedback.append(
                     "A successful final is not yet supported by the required public completion observation. Your next action must obtain that evidence now; for AppWorld call apis.supervisor.complete_task(...) with a concise direct answer only for a question, then print its result."

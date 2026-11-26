@@ -31,6 +31,7 @@ from reliable_agent_appworld.observability import BoundedRedactingStream, EventL
 from reliable_agent_appworld.protocol import (
     JsonLinesTransport,
     ProtocolError,
+    appworld_completion_action,
     appworld_completion_observed,
     appworld_discovery_action,
     decode_appworld_public_input,
@@ -170,6 +171,29 @@ def test_appworld_discovery_action_uses_only_public_objective():
     assert 'api_name="login"' in code
     assert "public@example.invalid" not in code
     assert appworld_discovery_action(TaskState(task=task())) is None
+
+
+@pytest.mark.parametrize(
+    ("objective", "answer", "expected"),
+    [
+        ("What is the song title?", '"Swept Away"', 'answer="Swept Away"'),
+        ("How many songs are there?", "23", "answer=23"),
+        ("Give me a comma-separated list.", "one, two", 'answer="one, two"'),
+        ("Play the selected song.", "The song is playing.", "complete_task()"),
+    ],
+)
+def test_appworld_completion_action_preserves_direct_answer_semantics(
+    objective, answer, expected
+):
+    state = TaskState(
+        task=task().model_copy(update={"input": json.dumps({"instruction": objective})})
+    )
+    decision = final().model_copy(update={"answer": answer})
+
+    completion = appworld_completion_action(state, decision)
+
+    assert completion is not None
+    assert expected in completion.action.arguments["code"]
 
 
 async def test_history_exact_budget_retains_latest_multibyte_attempt():
