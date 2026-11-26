@@ -1,0 +1,33 @@
+{
+  "run_id": "20261126T083031-960354Z-f9fa30a75045",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T083031-960354Z-f9fa30a75045",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "ffa476ee237bbbed5fba6b2e540b16e2c3f91930",
+  "candidate": "D: official-style worked example, duplicate/no-output feedback, thinking, 180-second episode",
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.0},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 1.0},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 6,
+    "successes": 0,
+    "completed_true": 0,
+    "mean_actions": 5.8333,
+    "mean_seconds": 161.9373,
+    "timeout_stops": 5,
+    "model_request_timeout_stops": 1,
+    "complete_task_attempts": 0,
+    "exact_duplicate_actions": 1
+  },
+  "public_trace_findings": [
+    "The example and feedback nearly eliminated exact repetition, but long reasoning/code reduced throughput to 5.8 actions per episode.",
+    "The previous-song task reached a Luna Starlight song after four verified navigation iterations, then timed out before complete_task.",
+    "The queue task incorrectly used play_music instead of add_to_queue and failed to filter query results to the requested artist.",
+    "The artist-extremum task spent its remaining turns on additional docs instead of calling the already-discovered search_songs endpoint.",
+    "Several actions used invalid page_limit=50 or assumed id/artist fields despite observed schemas, demonstrating remaining schema-following errors."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Reject D and stop prompt-only expansion. Run the original concise react-v2 prompt with the engineering/completion fixes to measure whether prompt revisions caused the throughput/quality regression. Preserve the near-complete navigation trace as evidence that finalization latency still matters after correct effects."
+}

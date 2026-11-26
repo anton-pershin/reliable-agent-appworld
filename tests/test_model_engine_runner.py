@@ -161,7 +161,7 @@ async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
     assert prompt["remaining_episode_seconds"] == 12.3
     assert prompt["task"]["objective"] == "Print 42"
     assert "instruction" not in prompt["task"]["input"]
-    assert prompt["prompt_version"] == "react-v4"
+    assert prompt["prompt_version"] == "react-v2-verified"
 
 
 async def test_pydantic_schema_validation_repair_is_retried_and_logged():
@@ -336,32 +336,6 @@ async def test_completion_check_defers_and_releases_final_without_extra_model_ca
     assert released.completed is True
     assert state.pending_final is None
     assert not model.decisions
-
-
-def test_attempt_feedback_flags_unprinted_and_exact_duplicate_actions():
-    cfg = config()
-    event_logger, _ = logger(cfg)
-    engine = DecisionEngine(cfg, QueueModel(), event_logger)
-    state = TaskState(task=task())
-    unprinted = ActionRequest(
-        name="execute_code", arguments={"code": "apis.spotify.search_songs(query='x')"}
-    )
-    first = ActionAttempt(
-        call_id="call-1",
-        action=unprinted,
-        results=[ActionResult(status="ok", observation={"output": "Execution successful."})],
-    )
-    second = ActionAttempt(
-        call_id="call-2",
-        action=unprinted,
-        results=[ActionResult(status="ok", observation={"output": "Execution successful."})],
-    )
-
-    engine.record_attempt(state, first)
-    engine.record_attempt(state, second)
-
-    assert any("printed no returned values" in item for item in state.validation_feedback)
-    assert any("exactly repeats call-1" in item for item in state.validation_feedback)
 
 
 async def test_engine_repels_give_up_after_recoverable_attempts():
