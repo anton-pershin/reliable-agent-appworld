@@ -112,6 +112,7 @@ class DecisionEngine:
 
     def record_attempt(self, state: TaskState, attempt) -> None:
         state.record_attempt(attempt)
+        state.completion_observed = self._completion_observed(state)
         self.logger.emit(
             "action_attempt_recorded",
             call_id=attempt.call_id,

@@ -176,6 +176,7 @@ class TaskState(ContractModel):
     history_trimmed: bool = False
     model_requests: int = 0
     pending_final: FinalDecision | None = None
+    completion_observed: bool = False
 
     @property
     def action_attempts(self) -> int:

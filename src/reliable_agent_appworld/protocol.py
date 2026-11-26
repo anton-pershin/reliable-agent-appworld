@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import ast
 import asyncio
 import io
 import json
 import math
 import os
-import re
 import sys
 import time
 from collections.abc import Sequence
@@ -80,15 +80,40 @@ def decode_appworld_public_input(task: Task) -> Task:
     return task.model_copy(update={"input": normalized})
 
 
+def _successful_complete_task_call(code: str) -> bool:
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        function = node.func
+        if function.attr != "complete_task" or not isinstance(function.value, ast.Attribute):
+            continue
+        supervisor = function.value
+        if (
+            supervisor.attr != "supervisor"
+            or not isinstance(supervisor.value, ast.Name)
+            or supervisor.value.id != "apis"
+        ):
+            continue
+        failed = any(
+            keyword.arg == "status"
+            and isinstance(keyword.value, ast.Constant)
+            and keyword.value.value == "fail"
+            for keyword in node.keywords
+        )
+        if not failed:
+            return True
+    return False
+
+
 def appworld_completion_observed(state: TaskState) -> bool:
     """Recognize public successful completion without coupling the generic engine to AppWorld."""
     for attempt in state.attempts:
         code = attempt.action.arguments.get("code")
-        if not isinstance(code, str) or "apis.supervisor.complete_task" not in code:
-            continue
-        if re.search(
-            r"complete_task\s*\([^)]*status\s*=\s*(['\"])fail\1", code, re.DOTALL
-        ):
+        if not isinstance(code, str) or not _successful_complete_task_call(code):
             continue
         for result in attempt.results:
             output = result.observation.get("output", "")

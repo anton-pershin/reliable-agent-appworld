@@ -100,10 +100,14 @@ def test_appworld_completion_check_requires_actual_successful_call_not_docs_or_f
             action=ActionRequest(
                 name="execute_code",
                 arguments={
-                    "code": "print(apis.api_docs.show_api_doc(app_name='supervisor', api_name='complete_task'))"
+                    "code": "# apis.supervisor.complete_task() in a comment is not execution\nprint(apis.api_docs.show_api_doc(app_name='supervisor', api_name='complete_task'))"
                 },
             ),
-            results=[ActionResult(status="ok", observation={"output": "documentation"})],
+            results=[
+                ActionResult(
+                    status="ok", observation={"output": "Marked the active task complete."}
+                )
+            ],
         )
     )
     assert not appworld_completion_observed(state)

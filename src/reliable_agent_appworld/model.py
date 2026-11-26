@@ -87,12 +87,22 @@ class PydanticAIModelClient:
 
     def _attempt_payload(self, attempt, observation_limit: int) -> dict[str, Any]:
         payload = attempt.model_dump(mode="json")
-        rendered = json.dumps(payload["results"], ensure_ascii=False, default=str)
-        if len(rendered) > observation_limit:
-            omitted = len(rendered) - observation_limit
-            payload["results"] = (
-                rendered[:observation_limit] + f"...<observation truncated {omitted} chars>"
-            )
+        for result in payload["results"]:
+            observation = result.get("observation", {})
+            rendered = json.dumps(observation, ensure_ascii=False, default=str)
+            if len(rendered) <= observation_limit:
+                continue
+            marker = f"...<observation truncated {len(rendered) - observation_limit} chars; middle omitted>..."
+            content_budget = max(2, observation_limit - len(marker))
+            head_length = content_budget // 2
+            tail_length = content_budget - head_length
+            result["observation"] = {
+                "truncated_json": (
+                    rendered[:head_length] + marker + rendered[-tail_length:]
+                ),
+                "original_chars": len(rendered),
+                "recovery": "Reprint a smaller targeted value if the omitted middle is needed.",
+            }
         return payload
 
     def public_history(self, state: TaskState) -> list[Any]:
@@ -174,6 +184,7 @@ class PydanticAIModelClient:
                 "task": self._task_payload(state),
                 **budget,
                 "action_attempts": state.action_attempts,
+                "completion_observed": state.completion_observed,
                 "remaining_action_attempts": max(
                     0, self.config.action_budget - state.action_attempts
                 ),

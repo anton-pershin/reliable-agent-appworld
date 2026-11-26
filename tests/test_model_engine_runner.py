@@ -11,6 +11,7 @@ from reliable_agent_appworld.config import AgentConfig
 from reliable_agent_appworld.contracts import (
     ActionAttempt,
     ActionDecision,
+    ActionError,
     ActionRequest,
     ActionResult,
     FinalDecision,
@@ -237,6 +238,33 @@ async def test_history_trims_old_observations_then_whole_entries():
     assert any(event["event"] == "context_trimmed" for event in events(stream))
 
 
+def test_attempt_truncation_preserves_structure_error_and_unicode_traceback_tail():
+    cfg = config(max_observation_chars=240)
+    event_logger, _ = logger(cfg)
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(lambda *_: None))
+    attempt = ActionAttempt(
+        call_id="call-1",
+        action=action().action,
+        results=[
+            ActionResult(
+                status="error",
+                observation={"output": "🙂 start " + "x" * 3000 + "\nValueError: tail-clue"},
+                error=ActionError(type="execution_failed", message="recovery-clue"),
+            )
+        ],
+    )
+
+    payload = client._attempt_payload(attempt, 240)
+    result = payload["results"][0]
+    compact = result["observation"]["truncated_json"]
+
+    assert result["status"] == "error"
+    assert result["error"]["message"] == "recovery-clue"
+    assert compact.startswith('{"output": "🙂 start')
+    assert compact.endswith("ValueError: tail-clue\"}")
+    assert "middle omitted" in compact
+
+
 async def test_engine_repairs_invalid_tool_arguments():
     cfg = config()
     event_logger, _ = logger(cfg)
@@ -289,7 +317,8 @@ async def test_completion_check_defers_and_releases_final_without_extra_model_ca
     assert isinstance(first, ActionDecision)
     assert state.pending_final is not None
 
-    state.record_attempt(
+    engine.record_attempt(
+        state,
         ActionAttempt(
             call_id="call-1",
             action=first.action,
@@ -299,8 +328,9 @@ async def test_completion_check_defers_and_releases_final_without_extra_model_ca
                     observation={"output": "Marked the active task complete."},
                 )
             ],
-        )
+        ),
     )
+    assert state.completion_observed is True
     released = await engine.next_decision(state, 30)
     assert isinstance(released, FinalDecision)
     assert released.completed is True
