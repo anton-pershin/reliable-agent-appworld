@@ -346,6 +346,183 @@
       },
       "infrastructure_failures": 0,
       "decision": "Do not promote. The candidate did not meet 0.3, did not solve the target multi-app scenario, and regressed AC2 recall from accepted to valid. The prompt rules did not convert the source-filtering scenario. Test the previously untested fenced-code action contract rather than continuing prompt-only tuning."
+    },
+    {
+      "run_id": "20261127T195631-387983Z-c38c651458bf",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T195631-387983Z-c38c651458bf",
+      "candidate": "initial ACTION fenced-code or FINAL JSON output mode",
+      "solution_commit": "f4524f2",
+      "solution_overrides": "--log-level INFO --output-mode code",
+      "population": "frozen train mechanism screen",
+      "successes": 3,
+      "episodes": 6,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "07b42fd_1",
+        "287e338_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "deadline timeout after nine actions and ten completed model responses",
+        "3c13f5a_1": "deadline timeout after seven actions and nine completed model responses",
+        "771d8fc_1": "response-contract failure after the model repeatedly emitted ACTION followed by FINAL"
+      },
+      "interpretation": "Direct code shifted both multi-app failures from early model-output failures to substantially more public work. It did not increase aggregate train success, so this is a decision-yield improvement rather than an accuracy pass.",
+      "decision": "Allow action-first ACTION+FINAL responses so the first action executes before its final is requested. Test the parser fix on the same train screen before dev."
+    },
+    {
+      "run_id": "20261127T200943-069581Z-637b746671d1",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T200943-069581Z-637b746671d1",
+      "candidate": "fenced code with action-first ACTION+FINAL parsing and numeric protocol-answer normalization",
+      "solution_commit": "a84f41b",
+      "solution_overrides": "--log-level INFO --output-mode code",
+      "population": "frozen train mechanism screen",
+      "successes": 3,
+      "episodes": 6,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "07b42fd_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "deadline timeout after eight actions",
+        "3c13f5a_1": "deadline timeout after seven actions",
+        "287e338_1": "response-contract failure after valid FINAL marker lines included trailing prose"
+      },
+      "decision": "The action-first fix recovered the phone task. The aggregate remained 3/6 because the answer task exposed annotated FINAL marker lines. Commit c22a295 accepts those marker lines; proceed directly to repeated dev rather than another train-only cycle."
+    },
+    {
+      "run_id": "20261127T201935-150435Z-1e01c815d986",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T201935-150435Z-1e01c815d986",
+      "candidate": "action-first fenced code with annotated marker support, generic aliases, and source/aggregation guidance",
+      "solution_commit": "c22a295",
+      "solution_overrides": "--log-level INFO --output-mode code",
+      "population": "frozen dev confirmation",
+      "successes": 6,
+      "episodes": 24,
+      "success_rate": 0.25,
+      "successes_by_scenario": {
+        "fac291d": 6,
+        "3ab5b8b": 0,
+        "383cbac": 0,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 5,
+      "stopped_episodes": 13,
+      "failure_causes": {
+        "deadline_timeouts": 10,
+        "output_token_limit": 2,
+        "model_declared_failures": 1,
+        "incorrect_public_completions": 5
+      },
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.7222222222222222
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "This is the first promising accuracy candidate: fac291d improved to 6/6 and AC2/AC3/AC7 remained accepted. It is still below 0.3 and has no multi-app success. Ten deadline timeouts, including five in 530b157, justify one 240-second episode test with model cap and output tokens unchanged."
+    },
+    {
+      "run_id": "20261127T205551-981539Z-a1d1d241bd55",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T205551-981539Z-a1d1d241bd55",
+      "candidate": "fenced code with a 240-second episode and unchanged 60-second model cap/1024 tokens",
+      "solution_commit": "c22a295",
+      "solution_overrides": "--log-level INFO --output-mode code --episode-timeout-seconds 240",
+      "population": "frozen train mechanism screen",
+      "successes": 4,
+      "episodes": 6,
+      "success_rate": 0.6666666666666666,
+      "successful_tasks": [
+        "07b42fd_1",
+        "287e338_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "deadline timeout after eleven actions and 227.08 seconds",
+        "3c13f5a_1": "no valid final-only decision after five actions and 169.03 seconds"
+      },
+      "decision": "Best train result, but both multi-app tasks remain unsuccessful. The repeated dev run must meet the gate before the design is selected."
+    },
+    {
+      "run_id": "20261127T205552-018995Z-1c6a719a5f4b",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T205552-018995Z-1c6a719a5f4b",
+      "candidate": "fenced code with generic policy/source guidance and a 240-second episode",
+      "solution_commit": "c22a295",
+      "solution_overrides": "--log-level INFO --output-mode code --episode-timeout-seconds 240",
+      "population": "frozen dev confirmation",
+      "successes": 8,
+      "episodes": 24,
+      "success_rate": 0.3333333333333333,
+      "successes_by_scenario": {
+        "fac291d": 6,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 1
+      },
+      "incorrect_public_completions": 8,
+      "stopped_episodes": 8,
+      "failure_causes": {
+        "deadline_timeouts": 5,
+        "model_declared_failures": 2,
+        "output_token_limit": 1,
+        "incorrect_public_completions": 8
+      },
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.5
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Select for a future implementation spec. The run exceeds 0.3, includes a multi-app success, preserves all three other criteria at accepted status, and has no infrastructure failure. This remains partial diagnostic evidence, not authoritative project acceptance."
     }
   ],
   "static_candidate_checks": {
@@ -406,5 +583,42 @@
       }
     },
     "mechanism_review": "The first policy candidate does not address all objectives in this population. In particular, 530b157 uses money/payment semantics without naming Venmo, motivating a generic payment-alias candidate."
+  },
+  "updated_on": "2026-11-28",
+  "selected_candidate": {
+    "ready_for_spec": true,
+    "experimental_solution_commit": "c22a295cf634bdb81aad10cc8906ce69968b5a43",
+    "design": [
+      "For execute_code tasks, use ACTION with one fenced Python block and FINAL with one strict self-assessment JSON object.",
+      "Execute an ACTION before a trailing FINAL; accept annotated marker lines; normalize numeric protocol answers to strings.",
+      "Keep generic app aliases, Name/rating answer classification, and concise source/aggregation guidance.",
+      "Use a 240-second episode with the existing 60-second model cap, 1024 output tokens, thinking, sampling, and no model seed.",
+      "Preserve structured decisions for tasks without execute_code and preserve all existing validation, completion, privacy, and deadline checks."
+    ],
+    "required_final_work": [
+      "Make the selected behavior the installed default for execute_code tasks without requiring policy overrides.",
+      "Add installed default-process tests for fenced action/final behavior and rerun the complete local matrix.",
+      "Rerun the frozen dev population on the exact reviewed default revision with only logging configuration.",
+      "Complete independent engineering review and then one authoritative full validation; issue 6 requires VM1 >=0.3 and every criterion at least valid."
+    ],
+    "train_evidence": {
+      "run_id": "20261127T205551-981539Z-a1d1d241bd55",
+      "successes": 4,
+      "episodes": 6
+    },
+    "dev_evidence": {
+      "run_id": "20261127T205552-018995Z-1c6a719a5f4b",
+      "successes": 8,
+      "episodes": 24,
+      "rate": 0.3333333333333333
+    },
+    "remaining_limits": [
+      "The 0.3 issue target is not yet demonstrated on the authoritative full population.",
+      "The source-filtering dev scenario remained 0/6 with six incorrect completions.",
+      "The multi-app dev scenario succeeded in only one of six episodes.",
+      "AC2 recall met the accepted threshold exactly at 0.5 and has no margin on this small population.",
+      "A 240-second default may increase full-validation wall time; no full run was started during investigation."
+    ],
+    "no_full_validation_performed": true
   }
 }
