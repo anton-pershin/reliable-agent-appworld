@@ -194,6 +194,158 @@
         "771d8fc_1": "incorrect public completion despite a claimed delete response"
       },
       "decision": "Do not promote the longer budgets or fallback as accuracy improvements. No multi-app task succeeded, the longer run allowed more work without conversion, and the fallback ended in a text-schema failure."
+    },
+    {
+      "run_id": "20261127T183809-611269Z-bfaf481d8c1c",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T183809-611269Z-bfaf481d8c1c",
+      "candidate": "policy-only explicit/domain aliases and answer classification",
+      "solution_commit": "1b29bbf",
+      "solution_overrides": "--log-level INFO",
+      "population": "frozen dev confirmation",
+      "successes": 2,
+      "episodes": 24,
+      "success_rate": 0.08333333333333333,
+      "successes_by_scenario": {
+        "fac291d": 2,
+        "3ab5b8b": 0,
+        "383cbac": 0,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 6,
+      "stopped_episodes": 16,
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.7727272727272727
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Reject policy-only coverage as a sufficient accuracy design. It scored below the historical 4/24 subset and produced no multi-app success. Use the result as a negative baseline for the payment-alias and source/aggregation candidates.",
+      "failure_causes": {
+        "model_request_timeouts": 7,
+        "deadline_timeouts": 3,
+        "output_token_limit": 1,
+        "model_declared_failures": 5,
+        "incorrect_public_completions": 6
+      }
+    },
+    {
+      "run_id": "20261127T184227-620076Z-ddc36ab075c5",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T184227-620076Z-ddc36ab075c5",
+      "candidate": "policy plus generic money/payment aliases",
+      "solution_commit": "81cd1df",
+      "solution_overrides": "--log-level INFO",
+      "population": "frozen dev confirmation",
+      "successes": 4,
+      "episodes": 24,
+      "success_rate": 0.16666666666666666,
+      "successes_by_scenario": {
+        "fac291d": 2,
+        "3ab5b8b": 0,
+        "383cbac": 2,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 7,
+      "stopped_episodes": 13,
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.65
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Do not attribute the two additional 383cbac successes to payment aliases because that scenario already named Venmo. The target 530b157 scenario remained 0/6. The candidate matches the historical 4/24 subset but does not meet the 0.3 investigation gate. Source/aggregation and model-cap candidates remain necessary.",
+      "target_scenario_530b157": {
+        "episodes_with_phone_and_venmo_authentication": 6,
+        "successes": 0,
+        "public_failure_causes": {
+          "model_request_timeouts": 3,
+          "deadline_timeout": 1,
+          "structured_output_retry_exhaustion": 1,
+          "model_declared_failure": 1
+        },
+        "interpretation": "The generic aliases corrected reported authentication coverage in all six episodes, but model/output failures still prevented success."
+      }
+    },
+    {
+      "run_id": "20261127T191413-721194Z-e8de5959bf91",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T191413-721194Z-e8de5959bf91",
+      "candidate": "generic payment aliases plus concise source-collection and aggregation/ranking guidance",
+      "solution_commit": "42c39d3",
+      "solution_overrides": "--log-level INFO",
+      "population": "frozen train mechanism screen",
+      "successes": 3,
+      "episodes": 6,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "287e338_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "07b42fd_1": "model-request timeout after onboarding only",
+        "22cc237_1": "model-request timeout after four actions",
+        "3c13f5a_1": "deadline timeout after three actions"
+      },
+      "decision": "The candidate matched the best train result and again computed the Name answer from recommendation counts rather than response order. This is mechanism support, not proof of general improvement. The repeated dev run with a 90-second model cap must decide promotion."
+    },
+    {
+      "run_id": "20261127T191809-254542Z-b6e3a6e82e50",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T191809-254542Z-b6e3a6e82e50",
+      "candidate": "source/aggregation guidance, generic aliases, and a 90-second model cap within 180 seconds",
+      "solution_commit": "42c39d3",
+      "solution_overrides": "--log-level INFO --model-timeout-seconds 90",
+      "population": "frozen dev confirmation",
+      "successes": 4,
+      "episodes": 24,
+      "success_rate": 0.16666666666666666,
+      "successes_by_scenario": {
+        "fac291d": 3,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 11,
+      "stopped_episodes": 9,
+      "AC2": {
+        "status": "valid",
+        "precision": 1.0,
+        "recall": 0.45
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Do not promote. The candidate did not meet 0.3, did not solve the target multi-app scenario, and regressed AC2 recall from accepted to valid. The prompt rules did not convert the source-filtering scenario. Test the previously untested fenced-code action contract rather than continuing prompt-only tuning."
     }
   ],
   "static_candidate_checks": {
