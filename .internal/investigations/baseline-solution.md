@@ -17,7 +17,7 @@ Select, implement, and evaluate a credible baseline agent for the requirements i
 
 ### Current state
 
-The selected accuracy candidate uses adaptive public onboarding, verified automatic completion, direct-answer normalization, exact-target/write guidance, and a single 60-second model cap. Clean independent S2 run `20261126T111210-485860Z-a62eb5761864` solved a followed-artist query and an exact alarm mutation (2/12). Clean repeated S3 run `20261126T112911-243164Z-b162cf5d36ac` solved all three alarm variants across repeats (4/12); AC1/AC3 were valid and AC2/AC7 accepted. AC3's 0.3333 repeat range and zero playlist-answer successes remain explicit limitations. The next general spec will make this behavior the installable default and require final default-configuration checks, independent review, and one authoritative full validation; project acceptance is not claimed.
+The verified-accuracy increment is implemented, independently reviewed, and fully validated. Full run `20261126T131246-900491Z-c65d4f90b51e` completed all 630 episodes with 82 successes and no infrastructure failures. Overall success improved from 0% to 13.0159%; AC2/AC3/AC7 were accepted, while AC1 remained valid rather than accepted. The implementation therefore satisfies spec 02's full-validation gate but is not an accepted project implementation. The investigation remains active for further task accuracy and error-awareness improvements; the PR may proceed without claiming project completion.
 
 ### Contexts
 
@@ -40,6 +40,7 @@ The selected accuracy candidate uses adaptive public onboarding, verified automa
 | C15 | Focused semantics runtime `2e0e15f35b3b15b030af209ece11f79714080054` and successor | Frozen S2/S3 with direct answers, relevant-app auth, DateTime/contact and exact-target guidance | A10 serving unchanged; 180-second episode, single 60-second model cap, 1024 tokens, concurrency 2 | Provisional N 2/12; clean N 1/12; revised candidate 2/12 S2 and 4/12 S3 |
 | C16 | Default policy commit `92c250ac20b301b73b4e751a335104a60a6b4d57` | Local tests/wheel plus final four-criterion S3 with only `--log-level ERROR` | Same A10/model; selected settings now installable defaults | Local gates passed; default S3 3/12, all criteria at least valid |
 | C17 | Review-corrected commit `c4a8a5c9100456169649c5fd712d9cbb134b257a` plus logging-only `12361b8` | Full fault/fake-API/default-wheel matrix, independent re-review and corrected-runtime default S3 | Same serving/defaults; stronger privacy, pairing and reserve enforcement | 225+ local tests, six-job CI and review passed; default S3 5/12, all criteria at least valid |
+| C18 | Final reviewed implementation commit `21dc8d4014b0cfe68ab65ec0cd30876bb1bb2bc9` | Unchanged authoritative `appworld` full profile; 315 tasks, two repeats, all criteria; only logging override | A10/vLLM 0.34.0, validator concurrency 1, 21.87-hour wall run | Full run completed: valid not accepted; success 0.13016, AC2/AC3/AC7 accepted |
 
 ### Current understanding
 
@@ -116,6 +117,7 @@ The selected accuracy candidate uses adaptive public onboarding, verified automa
 | E46 | Are the independent review blockers corrected by executable gates? | C17 | Corrected commit `c4a8a5c` passed 225 tests per supported version plus runtime-only two-case wheel episodes and fake-API onboarding execution: [review fix results](evidence/accuracy-review-fix-results.json). | Re-review all blocker groups and rerun default S3 on this runtime; full validation remains paused until both pass. |
 | E47 | Did the independent review loop reach closure? | C17 | Re-review passed seven groups, then verified the quoted multiword redaction fix at `12361b8`; final verdict was PASS with no definite remaining blocker: [review closure](evidence/accuracy-independent-review-closure.json). | Spec AC5 is satisfied. Start full validation only after the corrected-runtime S3 is terminal and its result is recorded. |
 | E48 | Does the corrected runtime satisfy the final default S3 gate? | C17 | Corrected S3 run `20261126T125359-210611Z-db942fa801d4` used only `--log-level ERROR`, solved four alarm episodes and a numeric playlist answer (5/12), and had every criterion at least valid: [reviewed default S3 result](evidence/accuracy-reviewed-default-s3-result.json). | Final partial and review gates are complete. Submit one unchanged-profile full validation on the latest reviewed revision; retain AC1/AC3 limitations. |
+| E49 | What is the increment's authoritative full-validation result? | C18 | Full run `20261126T131246-900491Z-c65d4f90b51e` completed 630 episodes with 82 successes, success 0.13016 versus baseline 0, precision 1.0, recall 0.78832, repeat range 0.01270 and timely rate 0.99841: [full accuracy result](evidence/appworld-full-accuracy-result.json). | Spec AC6 is satisfied with a valid implementation. Append history and open the PR; keep the investigation active because project AC1 remains unmet. |
 
 ### Next candidates
 
@@ -130,7 +132,8 @@ The selected accuracy candidate uses adaptive public onboarding, verified automa
 - [x] Obtain cleanup approval before deleting anything; then verify reclaimed space and preserved model integrity.
 - [x] Compare one fixed public onboarding demonstration and other quality improvements; the worked prompt was rejected for low throughput, and structured decisions remained viable.
 - [x] Quantify public failures and complete frozen S1/S2/S3 candidate screens with independent and repeated evidence.
-- [ ] Freeze the selected verified-completion runtime in a general spec, make it the default, complete final review/default checks, and append a new full-validation result.
+- [x] Freeze the selected verified-completion runtime in spec 02, make it the default, complete review/default checks, and append full validation.
+- [ ] Analyze the improved run's remaining public task-family and false-confidence failures for the next accuracy increment.
 - [x] Select the initial prompt/history/self-assessment design and create the implementation spec with explicit decision gates.
 - [x] Revalidate the independently reviewed/hardened revision on the repeated dev population.
 - [x] Record the merged baseline's authoritative full-validation result.
