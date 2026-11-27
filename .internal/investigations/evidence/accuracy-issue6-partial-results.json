@@ -1,0 +1,118 @@
+{
+  "observed_on": "2026-11-27",
+  "issue": 6,
+  "validation_scope": "partial",
+  "evidence_boundary": {
+    "private_evaluator_reports_inspected": false,
+    "benchmark_or_record_files_inspected": false,
+    "ground_truth_inspected": false,
+    "new_full_validation_runs": 0,
+    "model_seed_configured": false,
+    "model": "qwen/qwen3.5-9b",
+    "model_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+    "vllm": "0.34.0",
+    "serving_context": 12288,
+    "continuous_batching": true
+  },
+  "prompt_measurement": {
+    "source_run_id": "20261126T131246-900491Z-c65d4f90b51e",
+    "reconstructed_public_decision_prompts": 1080,
+    "mean_prompt_characters": 18946.5,
+    "median_prompt_characters": 18796,
+    "maximum_prompt_characters": 26596,
+    "mean_task_payload_characters": 2309.1,
+    "mean_history_characters": 16371.0,
+    "interpretation": "History, not static task metadata, dominates the retained prompt. Character counts are not token counts and do not establish a latency cause."
+  },
+  "train_mechanism_population": {
+    "split": "train",
+    "task_ids": ["771d8fc_1", "07b42fd_1", "287e338_1", "e85d92a_1", "22cc237_1", "3c13f5a_1"],
+    "repeats": 1,
+    "episodes": 6,
+    "episode_concurrency_per_validation": 2,
+    "acceptance_criteria": ["AC1", "AC2", "AC7"],
+    "interpretation": "This is a small mechanism screen, not an unbiased overall-success estimate."
+  },
+  "completed_runs": [
+    {
+      "run_id": "20261127T180433-060114Z-f747528e061a",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T180433-060114Z-f747528e061a",
+      "candidate": "unchanged runtime with detailed bounded logs",
+      "solution_commit": "d885b4a",
+      "runtime_commit_equivalent_to": "21dc8d4014b0cfe68ab65ec0cd30876bb1bb2bc9",
+      "solution_overrides": "--log-level INFO",
+      "successes": 2,
+      "success_rate": 0.3333333333333333,
+      "successful_tasks": ["07b42fd_1", "e85d92a_1"],
+      "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.75},
+      "AC7": {"status": "accepted", "timely_rate": 1.0},
+      "public_failures": {
+        "22cc237_1": "structured-output retry exhaustion after two actions",
+        "771d8fc_1": "structured-output retry exhaustion after two actions",
+        "287e338_1": "incorrect public completion",
+        "3c13f5a_1": "model-declared failure after six actions",
+        "22cc237_1_and_771d8fc_1": "no model-request timeout"
+      },
+      "decision": "Use structured-output failure as the next isolated mechanism. Do not infer a general timeout reduction from this small sample."
+    },
+    {
+      "run_id": "20261127T181121-937905Z-022d5578e57b",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T181121-937905Z-022d5578e57b",
+      "candidate": "explicit public-objective app coverage plus Name/rating answer classification",
+      "solution_commit": "40f8cf0fb4019284d245b10cbd0abc1c3690c025",
+      "solution_overrides": "--log-level ERROR",
+      "successes": 3,
+      "success_rate": 0.5,
+      "successful_tasks": ["287e338_1", "771d8fc_1", "e85d92a_1"],
+      "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.6666666666666666},
+      "AC7": {"status": "accepted", "timely_rate": 1.0},
+      "public_failures": {
+        "07b42fd_1": "incorrect public completion",
+        "22cc237_1": "structured-output retry exhaustion after two actions",
+        "3c13f5a_1": "model-request timeout after onboarding only"
+      },
+      "decision": "Retain as provisional mechanism evidence. The Name task succeeded, but neither multi-app task succeeded. Small-sample outcome differences are not proof of general improvement.",
+      "operational_note": "The completed run and result are valid. A wrapper edit made during execution caused a post-run shell parse error; run.json status is completed and cleanup_error is null."
+    },
+    {
+      "run_id": "20261127T181458-801952Z-29a92a05ae41",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T181458-801952Z-29a92a05ae41",
+      "candidate": "text-only JSON decisions on the unchanged runtime",
+      "solution_commit": "d885b4a",
+      "solution_overrides": "--log-level ERROR --output-mode text",
+      "successes": 1,
+      "success_rate": 0.16666666666666666,
+      "successful_tasks": ["07b42fd_1"],
+      "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.8},
+      "AC7": {"status": "accepted", "timely_rate": 1.0},
+      "public_failures": {
+        "3c13f5a_1": "text output did not satisfy the decision schema",
+        "771d8fc_1": "text output did not satisfy the decision schema after onboarding only",
+        "e85d92a_1": "text output did not satisfy the decision schema before an action",
+        "22cc237_1": "deadline timeout",
+        "287e338_1": "incorrect public completion"
+      },
+      "decision": "Reject text-only output as the default. Keep structured output primary; a selective fallback still requires a separate result."
+    }
+  ],
+  "static_candidate_checks": {
+    "answer_classification_changed_variants": 6,
+    "answer_classification_changed_scenarios": ["287e338", "692c77d"],
+    "fake_public_api_objectives_tested": 315,
+    "expanded_alias_candidate_missing_implied_apps": 0,
+    "all_local_tests_passed": true,
+    "ruff_passed": true,
+    "package_build_passed": true,
+    "interpretation": "Static checks establish coverage and contract behavior only, not model-backed task success."
+  },
+  "rejected_or_deferred": [
+    "Text-only output is rejected by run 20261127T181458-801952Z-29a92a05ae41.",
+    "Static task-payload compaction is not a leading candidate because it accounts for only about 2.3k characters of an 18.9k-character mean public prompt.",
+    "The pinned Qwen chat template supports enable_thinking but has no thinking_budget control.",
+    "No full validation is needed for candidate selection."
+  ],
+  "operational_notes": [
+    "Two submissions with short commit hashes were rejected before run allocation; they are not validation runs.",
+    "No private evaluator data was used to design candidates."
+  ]
+}
