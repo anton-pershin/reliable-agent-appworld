@@ -301,6 +301,7 @@ def test_domain_aliases_cover_implicit_apps_without_search_support():
         ("Create a playlist from my SimpleNote songs.", {"simple_note", "spotify"}),
         ("Set my wake-up alarm.", {"phone"}),
         ("Reorganize files under ~/documents.", {"file_system"}),
+        ("Send the owed money and reply by phone text.", {"phone", "venmo"}),
     ]
     for objective, expected_apps in cases:
         apis = FakePublicAPIs(docs_app_names=())

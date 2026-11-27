@@ -287,7 +287,7 @@ app_aliases = {{
         "artist", "artists", "album", "albums",
     ),
     "todoist": ("todoist",),
-    "venmo": ("venmo",),
+    "venmo": ("venmo", "money", "payment", "payments", "pay", "paid"),
 }}
 objective_lower = objective.lower()
 mentioned = [
