@@ -17,7 +17,9 @@ Select, implement, and evaluate a credible baseline agent for the requirements i
 
 ### Current state
 
-The verified-accuracy increment is implemented, independently reviewed, and fully validated. Full run `20261126T131246-900491Z-c65d4f90b51e` completed all 630 episodes with 82 successes and no infrastructure failures. Overall success improved from 0% to 13.0159%; AC2/AC3/AC7 were accepted, while AC1 remained valid rather than accepted. The implementation therefore satisfies spec 02's full-validation gate but is not an accepted project implementation. The investigation remains active for further task accuracy and error-awareness improvements; the PR may proceed without claiming project completion.
+The verified-accuracy increment is implemented, independently reviewed, and fully validated. Full run `20261126T131246-900491Z-c65d4f90b51e` completed all 630 episodes with 82 successes and no infrastructure failures. Overall success improved from 0% to 13.0159%; AC2/AC3/AC7 were accepted, while AC1 remained valid rather than accepted. The implementation therefore satisfies spec 02's full-validation gate but is not an accepted project implementation.
+
+Issue 6 sets an intermediate overall-success target of at least 0.3. This requires 189 successful episodes in the same 630-episode population, or 107 additional successes. Public residual analysis partitions the 548 failures into 307 controlled generation/deadline stops, 113 model-declared failures, 127 unsuccessful public completions, and one process exit. Multi-app success is only 2/174, compared with 80/456 for single-app scenarios. No candidate has been selected for the next implementation spec; the next step is bounded comparison of decision yield, multi-app onboarding, and completion-contract candidates ([residual analysis](evidence/accuracy-full-residual-analysis.json)).
 
 ### Contexts
 
@@ -56,6 +58,11 @@ The verified-accuracy increment is implemented, independently reviewed, and full
 - The solution is installed non-editably and launched in an empty workspace. It cannot rely on source-checkout paths, AppWorld imports, private feedback, or unbounded standard output/error ([contract findings](evidence/validator-contract-findings.md)).
 - The related reliable-agent implementation provides reusable protocol/runner/model/logging patterns and regression tests, but its default PDDL planning, formal goal machinery, fixed sampling, and unbounded payload logging are not suitable for this baseline ([reuse findings](evidence/reliable-agent-reuse-findings.md)).
 - The official Qwen checkpoint and stable vLLM release support the required reasoning/tool parsers. A BF16 12K-context launch is a measurable A10 starting point, while official sampling must be set explicitly and no seed fixed ([serving plan](evidence/qwen-a10-serving-plan.md)).
+- In the improved full run, the action budget is not binding: no episode used more than 7 of 30 actions, and all 219 episodes with at most two actions failed. Controlled generation/deadline stops and model-declared failures remain the largest failure groups ([residual analysis](evidence/accuracy-full-residual-analysis.json)).
+- Public completion no longer implies likely task success: 209 episodes observed completion, but only 82 succeeded. Of the 127 unsuccessful completions, 115 were not flagged as likely incorrect. Improving flags alone cannot close the overall-success gap.
+- Single-app scenarios succeeded in 80/456 episodes, while multi-app scenarios succeeded in 2/174. Fifty-eight multi-app episodes omitted at least one publicly implied app authentication, with no explicit failed-login message; however, complete authentication still yielded only two successes, so coverage is not a sufficient fix.
+- The answer/action policy has generic boundary defects: `Name` is not recognized as an answer imperative, while an action-only objective starting with `Give` can be classified as an answer request. These are candidate regression cases, not task-specific solvers.
+- Improving only the 30 currently successful scenarios can produce at most 180 successes, below the issue target of 189. The next increment must expand success into currently unsuccessful scenarios as well as stabilize existing successes.
 
 #### Tentative or unresolved
 
@@ -64,6 +71,9 @@ The verified-accuracy increment is implemented, independently reviewed, and full
 - A reliable method for calibrated `likely_incorrect` flags is not yet established; conservative deterministic failure flags and model assessment need comparison.
 - Model serving parameters, practical episode latency, prompt size, output-token limits, and A10 memory use require measurement. Prior short-context PDDL traffic is only compatibility evidence, not an AppWorld serving or quality baseline.
 - The local validation base URL and runtime are established; operational A10 provider settings remain pending.
+- The full-run associations do not establish how much each candidate will improve success. Decision-request compaction, output-contract changes, app-coverage correction, and completion verification require separate diagnostic comparisons.
+- It is unknown how many of the 127 unsuccessful completions have correct public effects with only an answer-contract error versus incorrect task semantics. Representative traces already show wrong aggregation, target selection, filtering, and incomplete writes, so answer normalization alone is unlikely to suffice.
+- Accepted aggregate repeat-range AC3 coexists with 36 tasks that succeeded in only one repeat. The required tradeoff between broader success and per-task stability remains unmeasured.
 
 ### Experiments and decisions
 
@@ -118,6 +128,9 @@ The verified-accuracy increment is implemented, independently reviewed, and full
 | E47 | Did the independent review loop reach closure? | C17 | Re-review passed seven groups, then verified the quoted multiword redaction fix at `12361b8`; final verdict was PASS with no definite remaining blocker: [review closure](evidence/accuracy-independent-review-closure.json). | Spec AC5 is satisfied. Start full validation only after the corrected-runtime S3 is terminal and its result is recorded. |
 | E48 | Does the corrected runtime satisfy the final default S3 gate? | C17 | Corrected S3 run `20261126T125359-210611Z-db942fa801d4` used only `--log-level ERROR`, solved four alarm episodes and a numeric playlist answer (5/12), and had every criterion at least valid: [reviewed default S3 result](evidence/accuracy-reviewed-default-s3-result.json). | Final partial and review gates are complete. Submit one unchanged-profile full validation on the latest reviewed revision; retain AC1/AC3 limitations. |
 | E49 | What is the increment's authoritative full-validation result? | C18 | Full run `20261126T131246-900491Z-c65d4f90b51e` completed 630 episodes with 82 successes, success 0.13016 versus baseline 0, precision 1.0, recall 0.78832, repeat range 0.01270 and timely rate 0.99841: [full accuracy result](evidence/appworld-full-accuracy-result.json). | Spec AC6 is satisfied with a valid implementation. Append history and open the PR; keep the investigation active because project AC1 remains unmet. |
+| E50 | Which remaining public failures dominate issue 6, and what does the 0.3 target require? | C18 | The 548 failures partition into 307 controlled generation/deadline stops, 113 model-declared failures, 127 unsuccessful public completions, and one process exit. At most seven actions were used; all 219 episodes with at most two actions failed. The target needs 107 additional successes: [residual analysis](evidence/accuracy-full-residual-analysis.json). | Do not increase the action budget or optimize only error flags. Compare decision-yield and task-correctness candidates. Require expansion into zero-success scenarios because perfecting only currently successful scenarios would reach just 180 successes. |
+| E51 | Does public onboarding explain the multi-app gap? | C18 | Single-app success was 80/456 versus 2/174 for multi-app. Fifty-eight multi-app episodes omitted an implied app login without an explicit login failure and none succeeded; complete authentication still produced only 2/116 successes. | Test deterministic public-objective app coverage independently. Do not claim that authentication alone solves multi-app execution; retain a second candidate for bounded cross-app progress and evidence review. |
+| E52 | Are direct-answer/action-only semantics enforced on every completion path? | C18 | In the public `Name ...` scenario, five of six failed completions omitted an answer and the current answer-imperative expression omits `Name`. In an action-only rating scenario, all six failed completions supplied an answer and the current `Give` rule can request one. Representative traces also show aggregation, filtering, target, and partial-write errors. | Add generic answer/action regression cases and test one contract for automatic and model-authored completion. Do not use task-ID branches or assume that answer correction alone will close the gap. |
 
 ### Next candidates
 
@@ -133,7 +146,13 @@ The verified-accuracy increment is implemented, independently reviewed, and full
 - [x] Compare one fixed public onboarding demonstration and other quality improvements; the worked prompt was rejected for low throughput, and structured decisions remained viable.
 - [x] Quantify public failures and complete frozen S1/S2/S3 candidate screens with independent and repeated evidence.
 - [x] Freeze the selected verified-completion runtime in spec 02, make it the default, complete review/default checks, and append full validation.
-- [ ] Analyze the improved run's remaining public task-family and false-confidence failures for the next accuracy increment.
+- [x] Analyze the improved run's remaining public task-family and false-confidence failures for the next accuracy increment.
+- [ ] On a fresh frozen dev screen, compare one compact decision-request/output-contract candidate against the unchanged default; retain thinking, 1024 tokens, and 180 seconds initially, and measure early stops as well as genuine success.
+- [ ] Independently test deterministic public-objective app coverage and compact app-specific onboarding on multi-app tasks, including alias and no-secret regression checks.
+- [ ] Test one answer/action completion contract on automatic and model-authored paths, including generic `Name`-answer and rating-action cases; measure corrected task outcomes rather than flag changes alone.
+- [ ] If unsuccessful completions remain common, compare one bounded public-evidence review before completion. Do not add planners or voting without direct evidence that these simpler candidates are insufficient.
+- [ ] Confirm the selected combination on fresh repeated single-app and multi-app dev scenarios, preserve measurable AC2/AC3/AC7, and run full validation on the exact reviewed revision. Issue 6 passes only at overall success >= 0.3; project acceptance still requires the constitution threshold.
+- [ ] After a candidate is supported, create the next general spec with explicit decision gates and link it here. No implementation spec is created during the investigation-only turn.
 - [x] Select the initial prompt/history/self-assessment design and create the implementation spec with explicit decision gates.
 - [x] Revalidate the independently reviewed/hardened revision on the repeated dev population.
 - [x] Record the merged baseline's authoritative full-validation result.

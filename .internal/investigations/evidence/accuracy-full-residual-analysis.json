@@ -1,0 +1,153 @@
+{
+  "observed_on": "2026-11-27",
+  "source_run_id": "20261126T131246-900491Z-c65d4f90b51e",
+  "source_run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T131246-900491Z-c65d4f90b51e",
+  "solution_commit": "21dc8d4014b0cfe68ab65ec0cd30876bb1bb2bc9",
+  "issue": 6,
+  "evidence_boundary": {
+    "inputs_used": [
+      "episodes.jsonl aggregate episode records",
+      "per-episode protocol.jsonl public task, action, observation, and final messages",
+      "the public solution source at the validated revision"
+    ],
+    "private_evaluator_reports_inspected": false,
+    "benchmark_or_record_files_inspected": false,
+    "ground_truth_inspected": false,
+    "credentials_or_private_task_data_included": false,
+    "family_classification": "A heuristic over public objective wording, unified across the three variants of each scenario. It is not official benchmark metadata."
+  },
+  "population_and_target": {
+    "episodes": 630,
+    "tasks": 315,
+    "scenarios": 105,
+    "repeats_per_task": 2,
+    "successful_episodes": 82,
+    "unsuccessful_episodes": 548,
+    "overall_success_rate": 0.13015873015873017,
+    "issue_target_rate": 0.3,
+    "episode_successes_needed_for_target": 189,
+    "additional_successes_needed": 107,
+    "fraction_of_current_failures_that_must_become_successes": 0.19525547445255474
+  },
+  "disjoint_failure_partition": {
+    "controlled_generation_or_deadline_stops": {
+      "episodes": 307,
+      "model_request_timeouts": 194,
+      "other_timeouts": 56,
+      "output_retry_exhaustion": 34,
+      "invalid_task_decisions": 13,
+      "output_token_limit_errors": 10
+    },
+    "model_declared_failures_without_public_completion": 113,
+    "publicly_completed_but_independently_unsuccessful": {
+      "episodes": 127,
+      "likely_incorrect_false": 115,
+      "likely_incorrect_true": 12
+    },
+    "solution_process_exits_without_a_final": 1,
+    "interpretation": "The remaining gap includes both insufficient decision throughput and incorrect task semantics. Changing only error flags cannot increase overall success."
+  },
+  "actions_and_decision_yield": {
+    "configured_action_budget": 30,
+    "maximum_observed_actions": 7,
+    "mean_actions_per_episode": 3.0317460317460316,
+    "episodes_with_at_most_two_actions": 219,
+    "successes_among_episodes_with_at_most_two_actions": 0,
+    "onboarding_episodes": 618,
+    "onboarding_only_episodes": 92,
+    "onboarding_only_successes": 0,
+    "model_documentation_action_episodes": 210,
+    "model_documentation_actions": 345,
+    "stopped_episodes_with_model_documentation_actions": 175,
+    "model_documentation_actions_in_stopped_episodes": 303,
+    "interpretation": "The action budget is not binding. Early model timeouts, output failures, and repeated documentation work prevent useful turns. These counts are associations, not proof that documentation alone causes timeout."
+  },
+  "completion": {
+    "episodes_with_observed_public_completion": 209,
+    "successful_episodes": 82,
+    "unsuccessful_episodes": 127,
+    "success_rate_after_observed_public_completion": 0.3923444976076555,
+    "interpretation": "Public completion is now common but does not establish task correctness. Of the 127 unsuccessful completions, 115 were not flagged as likely incorrect."
+  },
+  "task_families": {
+    "single_app": {
+      "scenarios": 76,
+      "episodes": 456,
+      "successes": 80,
+      "success_rate": 0.17543859649122806,
+      "unsuccessful_public_completions": 110,
+      "stopped_episodes": 266
+    },
+    "multi_app": {
+      "scenarios": 29,
+      "episodes": 174,
+      "successes": 2,
+      "success_rate": 0.011494252873563218,
+      "unsuccessful_public_completions": 17,
+      "stopped_episodes": 154,
+      "solution_process_exits": 1
+    },
+    "selected_exact_families": {
+      "phone": {"scenarios": 5, "episodes": 30, "successes": 18, "success_rate": 0.6},
+      "spotify": {"scenarios": 34, "episodes": 204, "successes": 30, "success_rate": 0.14705882352941177},
+      "venmo": {"scenarios": 24, "episodes": 144, "successes": 20, "success_rate": 0.1388888888888889},
+      "simple_note": {"scenarios": 6, "episodes": 36, "successes": 7, "success_rate": 0.19444444444444445},
+      "file_system": {"scenarios": 6, "episodes": 36, "successes": 5, "success_rate": 0.1388888888888889}
+    },
+    "scenarios_with_any_success": 30,
+    "scenarios_with_zero_success": 75,
+    "maximum_successes_if_only_currently_successful_scenarios_improve": 180,
+    "minimum_additional_successes_then_needed_in_zero_success_scenarios": 9,
+    "interpretation": "Repeat stabilization alone cannot reach 0.3. The next design must also solve tasks in currently unsuccessful scenarios, especially multi-app scenarios."
+  },
+  "repeat_behavior": {
+    "tasks_with_two_successful_repeats": 23,
+    "tasks_with_exactly_one_successful_repeat": 36,
+    "tasks_with_zero_successful_repeats": 256,
+    "aggregate_repeat_success_rate_range": 0.012698412698412681,
+    "interpretation": "Accepted aggregate repeat-range AC3 does not imply per-task repeat stability."
+  },
+  "multi_app_onboarding": {
+    "episodes_missing_at_least_one_publicly_implied_app_authentication": 58,
+    "successes_among_those_episodes": 0,
+    "explicit_failed_login_messages_among_missing_apps": 0,
+    "episodes_with_complete_implied_app_authentication": 116,
+    "successes_with_complete_implied_app_authentication": 2,
+    "interpretation": "Deterministic app selection omits required apps in some multi-app objectives. Complete authentication is necessary in the observed successes but is not sufficient for multi-app task success."
+  },
+  "public_completion_contract_observations": {
+    "name_answer_scenario": {
+      "scenario": "287e338",
+      "episodes": 6,
+      "successes": 0,
+      "completion_calls_without_answer": 5,
+      "completion_calls_with_answer": 1,
+      "finding": "The public objective starts with 'Name', but the answer-imperative expression does not include that verb."
+    },
+    "rating_action_scenario": {
+      "scenario": "692c77d",
+      "episodes": 6,
+      "successes": 0,
+      "completion_calls_with_answer": 6,
+      "finding": "The public objective is action-only but starts with 'Give', which the answer-imperative expression can treat as an answer request."
+    },
+    "interpretation": "These are generic answer/action contract defects and candidate test cases, not task-specific solvers or proof that answer presence was the only cause of failure."
+  },
+  "decision": {
+    "candidate_order": [
+      "Measure a compact decision-request/output-contract candidate to increase useful decision yield without retrying rejected non-thinking, 512-token, 120-second, or long-worked-example variants.",
+      "Test deterministic public-objective app coverage and compact app-specific onboarding independently, with explicit alias and multi-app tests.",
+      "Apply one answer/action completion contract to both automatic and model-authored completion paths; add generic Name-answer and rating-action regression cases.",
+      "If incorrect completions remain common, test one bounded evidence-review step before completion rather than improving flags alone.",
+      "Confirm the selected combination on a fresh frozen dev population containing single-app and multi-app answer/action tasks with repeats, then run one authoritative full validation on the reviewed revision."
+    ],
+    "promotion_constraints": [
+      "Preserve genuine existing successes and keep every project criterion measurable.",
+      "Do not regress accepted AC2, AC3, or AC7 without explicit review and documentation.",
+      "Use public evidence only and no task-ID branches, reference answers, private reports, or fixed seeds.",
+      "Do not interpret small diagnostic populations as unbiased overall-success estimates.",
+      "Require full-validation overall success of at least 0.3 for issue 6; do not claim project acceptance at that threshold."
+    ],
+    "candidate_selected": false
+  }
+}
