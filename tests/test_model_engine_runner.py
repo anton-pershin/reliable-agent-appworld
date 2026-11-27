@@ -251,7 +251,8 @@ async def test_code_output_parses_final_json_with_default_kind():
     payload["answer"] = 42
 
     def respond(messages, info):
-        return ModelResponse(parts=[TextPart(content="FINAL\n" + json.dumps(payload))])
+        content = "FINAL with one JSON object:\n```json\n" + json.dumps(payload) + "\n```"
+        return ModelResponse(parts=[TextPart(content=content)])
 
     client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
     result = await client.decide(TaskState(task=task()), 30)

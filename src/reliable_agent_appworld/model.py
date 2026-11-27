@@ -291,8 +291,8 @@ class PydanticAIModelClient:
         return result.output
 
     def _parse_code_output(self, state: TaskState, text: str) -> Decision:
-        action_marker = re.search(r"(?m)^\s*ACTION\s*$", text)
-        final_marker = re.search(r"(?m)^\s*FINAL\s*$", text)
+        action_marker = re.search(r"(?m)^\s*ACTION\b[^\n]*$", text)
+        final_marker = re.search(r"(?m)^\s*FINAL\b[^\n]*$", text)
         if final_marker is not None and (
             action_marker is None or final_marker.start() < action_marker.start()
         ):
