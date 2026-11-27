@@ -323,6 +323,11 @@ def test_cli_overrides_environment_and_preserves_unspecified_environment_values(
     assert config.top_p == 0.8
 
 
+def test_code_output_mode_is_available_without_changing_the_default():
+    assert load_config([]).output_mode == "auto"
+    assert load_config(["--output-mode", "code"]).output_mode == "code"
+
+
 @pytest.mark.parametrize(
     ("name", "raw"),
     [

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import ast
 import asyncio
 import json
 import os
+import re
 import time
 from importlib.resources import files
 from typing import Any, Protocol
@@ -20,11 +22,12 @@ from pydantic_ai.messages import RetryFeedbackPart, RetryPromptPart, ToolReturnP
 from pydantic_ai.models import Model
 
 from .config import AgentConfig
-from .contracts import Decision, TaskState
+from .contracts import ActionDecision, ActionRequest, Decision, FinalDecision, TaskState
 from .errors import ModelRequestError
 from .observability import EventLogger
 
 _DECISION_ADAPTER = TypeAdapter(Decision)
+_FINAL_ADAPTER = TypeAdapter(FinalDecision)
 _TRANSIENT_STATUS_CODES = {408, 409, 425, 429}
 
 
@@ -58,6 +61,15 @@ class PydanticAIModelClient:
         os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
         self.model = model or config.model
         self.instructions = files("reliable_agent_appworld").joinpath("prompts/react.txt").read_text()
+        if config.output_mode == "code":
+            self.instructions = self.instructions.replace(
+                "Return ActionDecision for exactly one next action, or FinalDecision when no more action is appropriate.",
+                "Return ACTION followed by one fenced Python code block for the next execute_code action, "
+                "or FINAL followed by one JSON object when no more action is appropriate.",
+            ).replace(
+                "Afterward, return FinalDecision with completed=true and self-assessment.",
+                "Afterward, return FINAL with completed=true and self-assessment.",
+            )
 
     def _settings(self, *, text: bool = False) -> ModelSettings:
         values: dict[str, Any] = {
@@ -191,7 +203,11 @@ class PydanticAIModelClient:
                 "history": self.public_history(state),
                 "validation_feedback": state.validation_feedback[-10:],
                 "prompt_version": "react-v2.4-verified",
-                "format": "Return ActionDecision or FinalDecision only",
+                "format": (
+                    "Return ACTION with one fenced Python code block or FINAL with one JSON object"
+                    if self.config.output_mode == "code"
+                    else "Return ActionDecision or FinalDecision only"
+                ),
             },
             ensure_ascii=False,
             default=str,
@@ -229,6 +245,8 @@ class PydanticAIModelClient:
     ) -> Decision:
         if self.config.output_mode == "text":
             return await self._text_output(state, deadline)
+        if self.config.output_mode == "code":
+            return await self._code_output(state, deadline)
         try:
             return await self._tool_output(state, remaining_seconds)
         except ModelRequestRejectedError as exc:
@@ -271,6 +289,84 @@ class PydanticAIModelClient:
             ) from exc
         self._log_result(result, operation_id, "tool")
         return result.output
+
+    def _parse_code_output(self, state: TaskState, text: str) -> Decision:
+        markers = list(re.finditer(r"(?m)^\s*(ACTION|FINAL)\s*$", text))
+        if len(markers) != 1:
+            raise ValueError("Return exactly one ACTION or FINAL marker")
+        marker = markers[0]
+        body = text[marker.end() :].strip()
+        if marker.group(1) == "FINAL":
+            raw = body.removeprefix("```json").removesuffix("```").strip()
+            return _FINAL_ADAPTER.validate_python(json.loads(raw))
+        blocks = re.findall(r"```(?:python|py)?\s*\n(.*?)```", body, flags=re.DOTALL)
+        if len(blocks) != 1 or not blocks[0].strip():
+            raise ValueError("ACTION must contain exactly one nonempty fenced Python code block")
+        code = blocks[0].strip()
+        ast.parse(code)
+        if "execute_code" not in {tool.name for tool in state.task.tools}:
+            raise ValueError("Code output requires the supplied execute_code tool")
+        return ActionDecision(
+            action=ActionRequest(name="execute_code", arguments={"code": code})
+        )
+
+    async def _code_output(self, state: TaskState, deadline: float) -> Decision:
+        contract = (
+            "\nResponse contract:\n"
+            "For the next action, return ACTION on its own line and then one fenced Python code block.\n"
+            "For a final response, return FINAL on its own line and then one JSON object with "
+            "completed, answer, confidence, likely_incorrect, and reason. Do not include both.\n"
+        )
+        base_prompt = self.prompt(state, deadline - time.monotonic()) + contract
+        feedback = ""
+        for attempt in range(self.config.output_retries + 1):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ModelRequestError("Code output deadline exhausted", transient=True)
+            prompt = base_prompt + feedback
+            operation_id = f"decision-{state.model_requests + 1}-code-{attempt + 1}"
+            state.model_requests += 1
+            self.logger.emit(
+                "model_request",
+                operation_id=operation_id,
+                output_mode="code",
+                prompt=prompt,
+                generation_settings=self._public_settings(),
+            )
+            try:
+                agent = Agent(
+                    self.model,
+                    output_type=str,
+                    instructions=self.instructions,
+                    model_settings=self._settings(text=True),
+                    retries=0,
+                )
+                result = await agent.run(
+                    prompt, timeout=min(self.config.model_timeout_seconds, remaining)
+                )
+            except Exception as exc:
+                raise ModelRequestError(
+                    f"Code model request failed: {type(exc).__name__}: {exc}",
+                    transient=_is_transient(exc),
+                ) from exc
+            text = result.output.strip()
+            try:
+                output = self._parse_code_output(state, text)
+            except (ValueError, TypeError, SyntaxError, RecursionError) as exc:
+                feedback = (
+                    f"\nThe previous response was invalid: {exc}\n"
+                    "Return exactly one corrected ACTION code block or FINAL JSON object."
+                )
+                self.logger.emit(
+                    "model_repair",
+                    operation_id=operation_id,
+                    validation_feedback=str(exc),
+                    public_output=text,
+                )
+                continue
+            self._log_result(result, operation_id, "code")
+            return output
+        raise ModelRequestError("Code output did not satisfy the response contract")
 
     async def _text_output(self, state: TaskState, deadline: float) -> Decision:
         base_prompt = self.prompt(state, deadline - time.monotonic()) + "\nReturn only one JSON object matching this schema:\n"

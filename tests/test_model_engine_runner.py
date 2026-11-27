@@ -222,6 +222,54 @@ async def test_text_output_repairs_invalid_json():
     assert any(event["event"] == "model_repair" for event in events(stream))
 
 
+async def test_code_output_parses_one_fenced_action_without_json_escaping():
+    cfg = config(output_mode="code")
+    event_logger, _ = logger(cfg)
+
+    def respond(messages, info):
+        assert info.model_settings["tool_choice"] == "none"
+        return ModelResponse(parts=[TextPart(content="ACTION\n```python\nprint(42)\n```")])
+
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
+    result = await client.decide(TaskState(task=task()), 30)
+
+    assert isinstance(result, ActionDecision)
+    assert result.action.name == "execute_code"
+    assert result.action.arguments == {"code": "print(42)"}
+    assert "Return ACTION" in client.instructions
+
+
+async def test_code_output_parses_final_json_with_default_kind():
+    cfg = config(output_mode="code")
+    event_logger, _ = logger(cfg)
+    payload = final().model_dump()
+    del payload["kind"]
+
+    def respond(messages, info):
+        return ModelResponse(parts=[TextPart(content="FINAL\n" + json.dumps(payload))])
+
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
+    result = await client.decide(TaskState(task=task()), 30)
+
+    assert isinstance(result, FinalDecision)
+    assert result.completed is True
+
+
+async def test_code_output_repairs_missing_code_block():
+    cfg = config(output_mode="code", output_retries=1)
+    event_logger, stream = logger(cfg)
+    responses = iter(["ACTION\nprint(42)", "ACTION\n```python\nprint(42)\n```"])
+
+    def respond(messages, info):
+        return ModelResponse(parts=[TextPart(content=next(responses))])
+
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
+    result = await client.decide(TaskState(task=task()), 30)
+
+    assert isinstance(result, ActionDecision)
+    assert any(event["event"] == "model_repair" for event in events(stream))
+
+
 async def test_history_trims_old_observations_then_whole_entries():
     cfg = config(max_history_chars=1000, max_observation_chars=200)
     event_logger, stream = logger(cfg)

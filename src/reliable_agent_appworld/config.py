@@ -25,7 +25,7 @@ FLOAT_FIELDS = {
 
 class AgentConfig(ContractModel):
     model: str = Field(default="openai:qwen/qwen3.5-9b", min_length=1)
-    output_mode: Literal["auto", "tool", "text"] = "auto"
+    output_mode: Literal["auto", "tool", "text", "code"] = "auto"
     thinking: bool = True
     bootstrap_discovery: bool = True
     bootstrap_authentication: bool = True
@@ -92,7 +92,7 @@ def load_config(argv: Sequence[str] | None = None) -> AgentConfig:
     }
     parser = argparse.ArgumentParser(prog="reliable-agent-appworld")
     parser.add_argument("--model", default=argparse.SUPPRESS)
-    parser.add_argument("--output-mode", choices=("auto", "tool", "text"), default=argparse.SUPPRESS)
+    parser.add_argument("--output-mode", choices=("auto", "tool", "text", "code"), default=argparse.SUPPRESS)
     parser.add_argument(
         "--thinking", action=argparse.BooleanOptionalAction, default=argparse.SUPPRESS
     )
