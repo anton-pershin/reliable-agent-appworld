@@ -296,6 +296,20 @@ def test_objective_aliases_cover_apps_missing_from_search_results():
     assert_no_private_output(output)
 
 
+def test_domain_aliases_cover_implicit_apps_without_search_support():
+    cases = [
+        ("Create a playlist from my SimpleNote songs.", {"simple_note", "spotify"}),
+        ("Set my wake-up alarm.", {"phone"}),
+        ("Reorganize files under ~/documents.", {"file_system"}),
+    ]
+    for objective, expected_apps in cases:
+        apis = FakePublicAPIs(docs_app_names=())
+        namespace, output = execute_onboarding(objective, apis)
+        assert {call["app_name"] for call in apis.login_calls} == expected_apps
+        assert set(namespace["access_tokens"]) == expected_apps
+        assert_no_private_output(output)
+
+
 def test_phone_uses_phone_number_other_apps_use_email_and_tokens_stay_per_app():
     apis = FakePublicAPIs(docs_app_names=("gmail", "phone", "venmo"))
 

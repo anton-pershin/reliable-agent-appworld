@@ -277,12 +277,15 @@ for api_name in ("show_profile", "show_account_passwords"):
 app_names = sorted({{doc.get("app_name") for doc in docs if isinstance(doc, dict)}} - {{"api_docs", "supervisor", None}})
 app_aliases = {{
     "amazon": ("amazon",),
-    "file_system": ("file system", "file_system"),
+    "file_system": ("file system", "file_system", "~/"),
     "gmail": ("gmail",),
-    "phone": ("phone",),
+    "phone": ("phone", "alarm", "alarms", "text message", "voice message"),
     "simple_note": ("simple note", "simple_note", "simplenote"),
     "splitwise": ("splitwise",),
-    "spotify": ("spotify",),
+    "spotify": (
+        "spotify", "playlist", "playlists", "song", "songs",
+        "artist", "artists", "album", "albums",
+    ),
     "todoist": ("todoist",),
     "venmo": ("venmo",),
 }}
