@@ -228,7 +228,11 @@ async def test_code_output_parses_one_fenced_action_without_json_escaping():
 
     def respond(messages, info):
         assert info.model_settings["tool_choice"] == "none"
-        return ModelResponse(parts=[TextPart(content="ACTION\n```python\nprint(42)\n```")])
+        content = (
+            "ACTION\n```python\nprint(42)\n```\nFINAL\n"
+            + json.dumps(final().model_dump())
+        )
+        return ModelResponse(parts=[TextPart(content=content)])
 
     client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
     result = await client.decide(TaskState(task=task()), 30)
@@ -244,6 +248,7 @@ async def test_code_output_parses_final_json_with_default_kind():
     event_logger, _ = logger(cfg)
     payload = final().model_dump()
     del payload["kind"]
+    payload["answer"] = 42
 
     def respond(messages, info):
         return ModelResponse(parts=[TextPart(content="FINAL\n" + json.dumps(payload))])
@@ -253,6 +258,7 @@ async def test_code_output_parses_final_json_with_default_kind():
 
     assert isinstance(result, FinalDecision)
     assert result.completed is True
+    assert result.answer == "42"
 
 
 async def test_code_output_repairs_missing_code_block():

@@ -291,14 +291,21 @@ class PydanticAIModelClient:
         return result.output
 
     def _parse_code_output(self, state: TaskState, text: str) -> Decision:
-        markers = list(re.finditer(r"(?m)^\s*(ACTION|FINAL)\s*$", text))
-        if len(markers) != 1:
-            raise ValueError("Return exactly one ACTION or FINAL marker")
-        marker = markers[0]
-        body = text[marker.end() :].strip()
-        if marker.group(1) == "FINAL":
-            raw = body.removeprefix("```json").removesuffix("```").strip()
-            return _FINAL_ADAPTER.validate_python(json.loads(raw))
+        action_marker = re.search(r"(?m)^\s*ACTION\s*$", text)
+        final_marker = re.search(r"(?m)^\s*FINAL\s*$", text)
+        if final_marker is not None and (
+            action_marker is None or final_marker.start() < action_marker.start()
+        ):
+            raw = text[final_marker.end() :].strip()
+            raw = raw.removeprefix("```json").removesuffix("```").strip()
+            payload = json.loads(raw)
+            if isinstance(payload, dict) and type(payload.get("answer")) in {int, float}:
+                payload["answer"] = str(payload["answer"])
+            return _FINAL_ADAPTER.validate_python(payload)
+        if action_marker is None:
+            raise ValueError("Return an ACTION code block before a FINAL response")
+        body_end = final_marker.start() if final_marker is not None else len(text)
+        body = text[action_marker.end() : body_end].strip()
         blocks = re.findall(r"```(?:python|py)?\s*\n(.*?)```", body, flags=re.DOTALL)
         if len(blocks) != 1 or not blocks[0].strip():
             raise ValueError("ACTION must contain exactly one nonempty fenced Python code block")
@@ -315,7 +322,7 @@ class PydanticAIModelClient:
             "\nResponse contract:\n"
             "For the next action, return ACTION on its own line and then one fenced Python code block.\n"
             "For a final response, return FINAL on its own line and then one JSON object with "
-            "completed, answer, confidence, likely_incorrect, and reason. Do not include both.\n"
+            "completed, answer, confidence, likely_incorrect, and reason. Do not put FINAL before an ACTION that must execute first.\n"
         )
         base_prompt = self.prompt(state, deadline - time.monotonic()) + contract
         feedback = ""
