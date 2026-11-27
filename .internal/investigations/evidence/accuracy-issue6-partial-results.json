@@ -26,11 +26,22 @@
   },
   "train_mechanism_population": {
     "split": "train",
-    "task_ids": ["771d8fc_1", "07b42fd_1", "287e338_1", "e85d92a_1", "22cc237_1", "3c13f5a_1"],
+    "task_ids": [
+      "771d8fc_1",
+      "07b42fd_1",
+      "287e338_1",
+      "e85d92a_1",
+      "22cc237_1",
+      "3c13f5a_1"
+    ],
     "repeats": 1,
     "episodes": 6,
     "episode_concurrency_per_validation": 2,
-    "acceptance_criteria": ["AC1", "AC2", "AC7"],
+    "acceptance_criteria": [
+      "AC1",
+      "AC2",
+      "AC7"
+    ],
     "interpretation": "This is a small mechanism screen, not an unbiased overall-success estimate."
   },
   "completed_runs": [
@@ -43,9 +54,19 @@
       "solution_overrides": "--log-level INFO",
       "successes": 2,
       "success_rate": 0.3333333333333333,
-      "successful_tasks": ["07b42fd_1", "e85d92a_1"],
-      "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.75},
-      "AC7": {"status": "accepted", "timely_rate": 1.0},
+      "successful_tasks": [
+        "07b42fd_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.75
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
       "public_failures": {
         "22cc237_1": "structured-output retry exhaustion after two actions",
         "771d8fc_1": "structured-output retry exhaustion after two actions",
@@ -63,9 +84,20 @@
       "solution_overrides": "--log-level ERROR",
       "successes": 3,
       "success_rate": 0.5,
-      "successful_tasks": ["287e338_1", "771d8fc_1", "e85d92a_1"],
-      "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.6666666666666666},
-      "AC7": {"status": "accepted", "timely_rate": 1.0},
+      "successful_tasks": [
+        "287e338_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
       "public_failures": {
         "07b42fd_1": "incorrect public completion",
         "22cc237_1": "structured-output retry exhaustion after two actions",
@@ -82,9 +114,18 @@
       "solution_overrides": "--log-level ERROR --output-mode text",
       "successes": 1,
       "success_rate": 0.16666666666666666,
-      "successful_tasks": ["07b42fd_1"],
-      "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.8},
-      "AC7": {"status": "accepted", "timely_rate": 1.0},
+      "successful_tasks": [
+        "07b42fd_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.8
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
       "public_failures": {
         "3c13f5a_1": "text output did not satisfy the decision schema",
         "771d8fc_1": "text output did not satisfy the decision schema after onboarding only",
@@ -93,16 +134,84 @@
         "287e338_1": "incorrect public completion"
       },
       "decision": "Reject text-only output as the default. Keep structured output primary; a selective fallback still requires a separate result."
+    },
+    {
+      "run_id": "20261127T182252-203181Z-8018cd7131ac",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T182252-203181Z-8018cd7131ac",
+      "candidate": "expanded policy plus selective structured-to-text fallback after UnexpectedModelBehavior",
+      "solution_commit": "9b7f2ab",
+      "solution_overrides": "--log-level INFO",
+      "successes": 2,
+      "success_rate": 0.3333333333333333,
+      "successful_tasks": [
+        "07b42fd_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.75
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "public_failures": {
+        "22cc237_1": "model-request timeout after two actions",
+        "771d8fc_1": "model-request timeout after two actions",
+        "287e338_1": "incorrect public completion using the first recommendation",
+        "3c13f5a_1": "model-declared failure after four actions"
+      },
+      "text_fallback_events": 0,
+      "decision": "Fallback accuracy effect is inconclusive because the fallback path was not exercised. Do not claim improvement from the 2/6 result. The bounded-time candidate remains active."
+    },
+    {
+      "run_id": "20261127T182541-601355Z-c1df5784e398",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T182541-601355Z-c1df5784e398",
+      "candidate": "expanded policy, selective fallback, 240-second episode and 90-second model cap",
+      "solution_commit": "9b7f2ab",
+      "solution_overrides": "--log-level ERROR --episode-timeout-seconds 240 --model-timeout-seconds 90",
+      "successes": 3,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "07b42fd_1",
+        "287e338_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "model-declared failure after four actions and 224.41 seconds",
+        "3c13f5a_1": "text output schema failure after 177.67 seconds; the fallback path was exercised",
+        "771d8fc_1": "incorrect public completion despite a claimed delete response"
+      },
+      "decision": "Do not promote the longer budgets or fallback as accuracy improvements. No multi-app task succeeded, the longer run allowed more work without conversion, and the fallback ended in a text-schema failure."
     }
   ],
   "static_candidate_checks": {
     "answer_classification_changed_variants": 6,
-    "answer_classification_changed_scenarios": ["287e338", "692c77d"],
+    "answer_classification_changed_scenarios": [
+      "287e338",
+      "692c77d"
+    ],
     "fake_public_api_objectives_tested": 315,
     "expanded_alias_candidate_missing_implied_apps": 0,
     "all_local_tests_passed": true,
+    "pydantic_ai_versions_passed": [
+      "2.66.0",
+      "2.74.0"
+    ],
     "ruff_passed": true,
     "package_build_passed": true,
+    "installed_wheel_default_episodes_passed": 2,
     "interpretation": "Static checks establish coverage and contract behavior only, not model-backed task success."
   },
   "rejected_or_deferred": [
@@ -114,5 +223,36 @@
   "operational_notes": [
     "Two submissions with short commit hashes were rejected before run allocation; they are not validation runs.",
     "No private evaluator data was used to design candidates."
-  ]
+  ],
+  "dev_confirmation_population": {
+    "split": "dev",
+    "scenarios": [
+      "fac291d",
+      "3ab5b8b",
+      "383cbac",
+      "530b157"
+    ],
+    "variants_per_scenario": 3,
+    "repeats": 2,
+    "episodes": 24,
+    "acceptance_criteria": [
+      "AC1",
+      "AC2",
+      "AC3",
+      "AC7"
+    ],
+    "frozen_before_candidate_results": true,
+    "historical_full_run": {
+      "run_id": "20261126T131246-900491Z-c65d4f90b51e",
+      "successes": 4,
+      "success_rate": 0.16666666666666666,
+      "successes_by_scenario": {
+        "fac291d": 3,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 0
+      }
+    },
+    "mechanism_review": "The first policy candidate does not address all objectives in this population. In particular, 530b157 uses money/payment semantics without naming Venmo, motivating a generic payment-alias candidate."
+  }
 }
