@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import json
 
-from pydantic_ai.exceptions import ModelRequestRejectedError, UnexpectedModelBehavior
+from pydantic_ai.exceptions import ModelRequestRejectedError
 from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 
@@ -202,27 +202,6 @@ async def test_tool_rejection_falls_back_to_text_json():
     client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
     result = await client.decide(TaskState(task=task()), 30)
     assert isinstance(result, FinalDecision)
-    assert calls == 2
-    assert any(event["event"] == "text_fallback" for event in events(stream))
-
-
-async def test_nontransient_structured_output_failure_falls_back_to_text_json():
-    cfg = config()
-    event_logger, stream = logger(cfg)
-    calls = 0
-
-    def respond(messages, info):
-        nonlocal calls
-        calls += 1
-        if calls == 1:
-            raise UnexpectedModelBehavior("structured output retries exhausted")
-        assert info.model_settings["tool_choice"] == "none"
-        return ModelResponse(parts=[TextPart(content=json.dumps(action().model_dump()))])
-
-    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
-    result = await client.decide(TaskState(task=task()), 30)
-
-    assert isinstance(result, ActionDecision)
     assert calls == 2
     assert any(event["event"] == "text_fallback" for event in events(stream))
 

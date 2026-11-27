@@ -15,7 +15,6 @@ from pydantic_ai.exceptions import (
     ModelQuotaExceededError,
     ModelRequestRejectedError,
     RunTimedOut,
-    UnexpectedModelBehavior,
 )
 from pydantic_ai.messages import RetryFeedbackPart, RetryPromptPart, ToolReturnPart
 from pydantic_ai.models import Model
@@ -235,18 +234,6 @@ class PydanticAIModelClient:
         except ModelRequestRejectedError as exc:
             if self.config.output_mode != "auto":
                 raise ModelRequestError(f"Tool output was rejected: {exc}") from exc
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise ModelRequestError("No time remains for text fallback", transient=True) from exc
-            self.logger.emit("text_fallback", reason=str(exc))
-            return await self._text_output(state, deadline)
-        except ModelRequestError as exc:
-            if (
-                self.config.output_mode != "auto"
-                or exc.transient
-                or not isinstance(exc.__cause__, UnexpectedModelBehavior)
-            ):
-                raise
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise ModelRequestError("No time remains for text fallback", transient=True) from exc
