@@ -225,6 +225,8 @@ def test_appworld_discovery_action_uses_only_public_objective():
         ("Using my Spotify data, who is the most followed artist?", "Eliana Harper with 29 followers", 'answer="Eliana Harper"'),
         ("According to my plan. How long is the workout?", "In 2023 it was 60 minutes", "answer=60"),
         ("Give me a comma-separated list.", "one, two", 'answer="one, two"'),
+        ("Name the most followed artist.", "Eliana Harper", 'answer="Eliana Harper"'),
+        ("Give a 5-star rating to liked songs. If already rated lower, increase it to 5.", "Rated them", "complete_task()"),
         ("Who is the most followed artist?", "Eliana Harper with 29 followers", 'answer="Eliana Harper"'),
         ("Who is the most followed artist?", "Eliana Harper is the most followed artist I follow on Spotify, with 29 followers.", 'answer="Eliana Harper"'),
         ("Who is the most followed artist?", "The most followed artist is Eliana Harper.", 'answer="Eliana Harper"'),

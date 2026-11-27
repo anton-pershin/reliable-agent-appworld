@@ -281,6 +281,21 @@ def test_relevant_app_alias_filter_avoids_unrelated_logins():
     assert_no_private_output(output)
 
 
+def test_objective_aliases_cover_apps_missing_from_search_results():
+    apis = FakePublicAPIs(docs_app_names=("spotify",))
+
+    namespace, output = execute_onboarding(
+        "Read my SimpleNote and send the payment with Venmo.", apis
+    )
+
+    assert [call["app_name"] for call in apis.login_calls] == ["simple_note", "venmo"]
+    assert namespace["access_tokens"] == {
+        "simple_note": token_for("simple_note"),
+        "venmo": token_for("venmo"),
+    }
+    assert_no_private_output(output)
+
+
 def test_phone_uses_phone_number_other_apps_use_email_and_tokens_stay_per_app():
     apis = FakePublicAPIs(docs_app_names=("gmail", "phone", "venmo"))
 

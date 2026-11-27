@@ -280,7 +280,7 @@ app_aliases = {{
     "file_system": ("file system", "file_system"),
     "gmail": ("gmail",),
     "phone": ("phone",),
-    "simple_note": ("simple note", "simple_note"),
+    "simple_note": ("simple note", "simple_note", "simplenote"),
     "splitwise": ("splitwise",),
     "spotify": ("spotify",),
     "todoist": ("todoist",),
@@ -288,7 +288,7 @@ app_aliases = {{
 }}
 objective_lower = objective.lower()
 mentioned = [
-    name for name in app_names
+    name for name in app_aliases
     if any(alias in objective_lower for alias in app_aliases.get(name, (name,)))
 ]
 if mentioned:
@@ -313,11 +313,11 @@ _ANSWER_QUESTION = re.compile(
     re.IGNORECASE,
 )
 _ANSWER_IMPERATIVE = re.compile(
-    r"(?:^|[.!?]\s+|,\s*)(?:find|show|give|tell|list|provide|calculate|compute|determine|identify|return)\b",
+    r"(?:^|[.!?]\s+|,\s*)(?:find|show|give|tell|list|name|provide|calculate|compute|determine|identify|return)\b",
     re.IGNORECASE,
 )
 _ACTION_IMPERATIVE = re.compile(
-    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment)\b",
+    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment|rate|rated|rating|increase|decrease)\b",
     re.IGNORECASE,
 )
 
