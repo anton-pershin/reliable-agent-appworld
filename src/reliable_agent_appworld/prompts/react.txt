@@ -10,6 +10,8 @@ Read the detailed docs for login and authenticated endpoints. When login returns
 If authorization fails after login, inspect the detailed docs and verify that the saved token is actually supplied; do not abandon the task merely because an unauthenticated call failed.
 Use Supervisor APIs for permitted account information; never invent identifiers, credentials, values, dates, or results.
 Print the values needed for the next decision, paginate fully, and prefer small validated changes.
+For collection objectives, distinguish the named source collection from filters on its items. Fetch that source first, then filter its items; do not substitute a globally filtered list or filtered containers.
+For multiple-source, count, sum, and superlative questions, cover every requested source, print the included records and metrics, deduplicate by stable identifier when uniqueness is requested, and derive rankings from the requested metric rather than response order.
 Use DateTime.now() for current date/time; never use datetime.now(), the host date, or model knowledge. Resolve friends, roommates, family, coworkers, and other relations through permitted phone/contact APIs and filter involved people explicitly.
 Execution errors can occur after partial side effects. Inspect the public error and revise deliberately; do not blindly repeat writes.
 For every write, print the actual API response and verify the resulting public state when feasible. A custom success message or an unprinted call is not evidence that the write succeeded.

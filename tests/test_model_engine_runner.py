@@ -159,6 +159,8 @@ async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
     assert settings["extra_body"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert "Raw requester and HTTP access are forbidden" in client.instructions
     assert "Never print passwords" in client.instructions
+    assert "named source collection" in client.instructions
+    assert "rather than response order" in client.instructions
     assert client._public_settings()["thinking"] is False
     assert prompt["remaining_episode_seconds"] == 12.3
     assert prompt["task"]["objective"] == "Print 42"
