@@ -6,6 +6,7 @@ import logging
 import sys
 import time
 from collections.abc import Sequence
+from functools import partial
 
 from .config import AgentConfig, load_config
 from .contracts import controlled_failure
@@ -13,7 +14,16 @@ from .deadline import EpisodeDeadline
 from .engine import DecisionEngine
 from .model import PydanticAIModelClient
 from .observability import BoundedRedactingStream, EventLogger
-from .protocol import JsonLinesToolExecutor, JsonLinesTransport, decode_appworld_public_input
+from .protocol import (
+    JsonLinesToolExecutor,
+    JsonLinesTransport,
+    appworld_completion_action,
+    appworld_completion_call_id,
+    appworld_completion_observed,
+    appworld_discovery_action,
+    appworld_validate_action,
+    decode_appworld_public_input,
+)
 from .runner import TaskRunner
 
 
@@ -44,7 +54,35 @@ async def run_episode(config: AgentConfig) -> None:
             task = decode_appworld_public_input(task)
             logger.emit("appworld_public_input_decoded", task_id=task.id)
         model = PydanticAIModelClient(config, logger)
-        engine = DecisionEngine(config, model, logger)
+        completion_check = (
+            appworld_completion_observed
+            if any(tool.name == "execute_code" for tool in task.tools)
+            else None
+        )
+        engine = DecisionEngine(
+            config,
+            model,
+            logger,
+            completion_check=completion_check,
+            completion_call_id=(
+                appworld_completion_call_id if completion_check is not None else None
+            ),
+            bootstrap_action=(
+                partial(
+                    appworld_discovery_action,
+                    authenticate=config.bootstrap_authentication,
+                    private_only=config.adaptive_bootstrap,
+                )
+                if config.bootstrap_discovery and completion_check is not None
+                else None
+            ),
+            completion_action=(
+                appworld_completion_action
+                if config.automatic_completion and completion_check is not None
+                else None
+            ),
+            action_check=appworld_validate_action if completion_check is not None else None,
+        )
         executor = JsonLinesToolExecutor(transport)
         runner = TaskRunner(config, engine, executor, logger)
         final = await runner.run(task, deadline=deadline)

@@ -246,10 +246,12 @@ def test_documented_model_and_deadline_defaults():
         "presence_penalty",
         "repetition_penalty",
         "max_output_tokens",
+        "model_retries",
         "episode_timeout_seconds",
         "action_budget",
         "model_timeout_seconds",
         "final_response_reserve_seconds",
+        "decision_reserve_seconds",
     )
 
     assert {name: getattr(config, name) for name in names} == {
@@ -260,12 +262,32 @@ def test_documented_model_and_deadline_defaults():
         "min_p": 0.0,
         "presence_penalty": 0.0,
         "repetition_penalty": 1.0,
-        "max_output_tokens": 4096,
-        "episode_timeout_seconds": 285.0,
-        "action_budget": 50,
-        "model_timeout_seconds": 120.0,
-        "final_response_reserve_seconds": 25.0,
+        "max_output_tokens": 1024,
+        "model_retries": 0,
+        "episode_timeout_seconds": 180.0,
+        "action_budget": 30,
+        "model_timeout_seconds": 60.0,
+        "final_response_reserve_seconds": 15.0,
+        "decision_reserve_seconds": 35.0,
     }
+
+
+def test_thinking_defaults_on_and_supports_environment_and_cli_overrides(monkeypatch):
+    assert load_config([]).thinking is True
+    monkeypatch.setenv(ENV_PREFIX + "THINKING", "false")
+    assert load_config([]).thinking is False
+    assert load_config(["--thinking"]).thinking is True
+    monkeypatch.setenv(ENV_PREFIX + "THINKING", "true")
+    assert load_config(["--no-thinking"]).thinking is False
+    defaults = load_config([])
+    assert defaults.bootstrap_discovery is True
+    assert defaults.bootstrap_authentication is True
+    assert defaults.adaptive_bootstrap is True
+    assert defaults.automatic_completion is True
+    assert load_config(["--no-bootstrap-discovery"]).bootstrap_discovery is False
+    assert load_config(["--no-bootstrap-authentication"]).bootstrap_authentication is False
+    assert load_config(["--no-adaptive-bootstrap"]).adaptive_bootstrap is False
+    assert load_config(["--no-automatic-completion"]).automatic_completion is False
 
 
 def test_cli_overrides_environment_and_preserves_unspecified_environment_values(monkeypatch):
@@ -424,6 +446,15 @@ def test_public_config_is_json_safe_and_excludes_credentials(monkeypatch):
 def test_invalid_individual_budgets_are_rejected(field, value):
     with pytest.raises(ValidationError):
         AgentConfig.model_validate({field: value})
+
+
+def test_combined_decision_and_response_reserves_leave_usable_time():
+    with pytest.raises(ValidationError, match="must leave usable episode time"):
+        AgentConfig(
+            episode_timeout_seconds=100,
+            final_response_reserve_seconds=20,
+            decision_reserve_seconds=80,
+        )
 
 
 @pytest.mark.parametrize("reserve", [100, 100.01])

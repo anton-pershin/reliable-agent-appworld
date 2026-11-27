@@ -1,0 +1,47 @@
+{
+  "observed_on": "2026-11-26",
+  "solution_commit": "92c250ac20b301b73b4e751a335104a60a6b4d57",
+  "spec": ".internal/specs/02-verified-react-accuracy-general-spec.md",
+  "defaults": {
+    "thinking": true,
+    "bootstrap_discovery": true,
+    "bootstrap_authentication": true,
+    "adaptive_bootstrap": true,
+    "automatic_completion": true,
+    "episode_timeout_seconds": 180,
+    "model_timeout_seconds": 60,
+    "model_retries": 0,
+    "max_output_tokens": 1024,
+    "action_budget": 30,
+    "decision_reserve_seconds": 35,
+    "final_response_reserve_seconds": 15,
+    "seed_configured": false
+  },
+  "tests": {
+    "collected_and_passed_per_supported_version": 189,
+    "pydantic_ai_2_66": "passed",
+    "pydantic_ai_2_74": "passed",
+    "ruff": "All checks passed"
+  },
+  "clean_wheel": {
+    "sdist_and_wheel_build": "passed",
+    "pip_check": "No broken requirements found",
+    "default_episode_without_pythonpath": "passed",
+    "sequence": [
+      "deterministic public onboarding action",
+      "model work action",
+      "model successful final claim",
+      "automatic no-answer Supervisor completion action",
+      "public completion observation",
+      "saved final release without another model call"
+    ],
+    "provider_model_calls": 2,
+    "protocol_stdout_only": true,
+    "provider_banner_suppressed": true
+  },
+  "remaining_gates": [
+    "default-configuration four-criterion S3 partial run",
+    "independent review closure",
+    "authoritative full validation on latest reviewed revision"
+  ]
+}

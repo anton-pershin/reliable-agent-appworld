@@ -1,0 +1,34 @@
+{
+  "run_id": "20261126T105514-791751Z-cd280132edae",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T105514-791751Z-cd280132edae",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "2e0e15f35b3b15b030af209ece11f79714080054",
+  "candidate": "N clean tunnel-free rerun",
+  "operational_incident": {"connection_failures": 0, "model_endpoint_healthy": true},
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.08333333333333333},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.7272727272727273},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 12,
+    "successes": 1,
+    "successful_task_id": "31dc501_1",
+    "completed_true": 5,
+    "incorrect_confident_completions": 3,
+    "mean_seconds": 99.2254
+  },
+  "comparison_to_first_n": {
+    "first_n_successes": 2,
+    "clean_rerun_successes": 1,
+    "interpretation": "Task success varies materially under unseeded sampling. The favorable incident-affected run is not a stable estimate."
+  },
+  "public_findings": [
+    "The alarm task correctly selected only the Wake Up alarm and verified snooze_minutes=5.",
+    "The workout task selected Wednesday/105 minutes despite the environment date, demonstrating remaining temporal reasoning errors.",
+    "Who answer formatting remained wrong in this runtime, and two complex Spotify tasks emitted unsupported cannot-determine completion claims."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Use the clean run as N's comparison result. Evaluate the revised answer/exact-target/contact candidate on S2 and repeated S3, then select on completed populations without relying on a single favorable sample."
+}

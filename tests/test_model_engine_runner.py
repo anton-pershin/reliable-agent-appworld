@@ -11,6 +11,7 @@ from reliable_agent_appworld.config import AgentConfig
 from reliable_agent_appworld.contracts import (
     ActionAttempt,
     ActionDecision,
+    ActionError,
     ActionRequest,
     ActionResult,
     FinalDecision,
@@ -147,6 +148,24 @@ async def test_structured_action_and_sampling_without_seed():
     assert response["private_reasoning"] == "not-retained"
 
 
+async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
+    cfg = config(thinking=False)
+    event_logger, _ = logger(cfg)
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(lambda *_: None))
+
+    settings = client._settings()
+    prompt = json.loads(client.prompt(TaskState(task=task()), 12.34))
+
+    assert settings["extra_body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert "Raw requester and HTTP access are forbidden" in client.instructions
+    assert "Never print passwords" in client.instructions
+    assert client._public_settings()["thinking"] is False
+    assert prompt["remaining_episode_seconds"] == 12.3
+    assert prompt["task"]["objective"] == "Print 42"
+    assert "instruction" not in prompt["task"]["input"]
+    assert prompt["prompt_version"] == "react-v2.4-verified"
+
+
 async def test_pydantic_schema_validation_repair_is_retried_and_logged():
     cfg = config(output_retries=1)
     event_logger, stream = logger(cfg)
@@ -221,6 +240,33 @@ async def test_history_trims_old_observations_then_whole_entries():
     assert any(event["event"] == "context_trimmed" for event in events(stream))
 
 
+def test_attempt_truncation_preserves_structure_error_and_unicode_traceback_tail():
+    cfg = config(max_observation_chars=240)
+    event_logger, _ = logger(cfg)
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(lambda *_: None))
+    attempt = ActionAttempt(
+        call_id="call-1",
+        action=action().action,
+        results=[
+            ActionResult(
+                status="error",
+                observation={"output": "🙂 start " + "x" * 3000 + "\nValueError: tail-clue"},
+                error=ActionError(type="execution_failed", message="recovery-clue"),
+            )
+        ],
+    )
+
+    payload = client._attempt_payload(attempt, 240)
+    result = payload["results"][0]
+    compact = result["observation"]["truncated_json"]
+
+    assert result["status"] == "error"
+    assert result["error"]["message"] == "recovery-clue"
+    assert compact.startswith('{"output": "🙂 start')
+    assert compact.endswith("ValueError: tail-clue\"}")
+    assert "middle omitted" in compact
+
+
 async def test_engine_repairs_invalid_tool_arguments():
     cfg = config()
     event_logger, _ = logger(cfg)
@@ -251,6 +297,125 @@ async def test_engine_rejects_premature_completion_and_normalizes_failure_flag()
     result = await engine.next_decision(state, 30)
     assert isinstance(result, FinalDecision)
     assert result.likely_incorrect is True
+
+
+async def test_completion_check_defers_and_releases_final_without_extra_model_call():
+    cfg = config(output_retries=1)
+    event_logger, _ = logger(cfg)
+    model = QueueModel(final(), action("print(apis.supervisor.complete_task(answer='42'))"))
+    engine = DecisionEngine(
+        cfg,
+        model,
+        event_logger,
+        completion_check=lambda state: any(
+            "Marked the active task complete." in str(result.observation.get("output", ""))
+            for attempt in state.attempts
+            for result in attempt.results
+        ),
+    )
+    state = TaskState(task=task())
+
+    first = await engine.next_decision(state, 30)
+    assert isinstance(first, ActionDecision)
+    assert state.pending_final is not None
+
+    engine.record_attempt(
+        state,
+        ActionAttempt(
+            call_id="call-1",
+            action=first.action,
+            results=[
+                ActionResult(
+                    status="ok",
+                    observation={"output": "Marked the active task complete."},
+                )
+            ],
+        ),
+    )
+    assert state.completion_observed is True
+    released = await engine.next_decision(state, 30)
+    assert isinstance(released, FinalDecision)
+    assert released.completed is True
+    assert state.pending_final is None
+    assert not model.decisions
+
+
+async def test_optional_bootstrap_action_precedes_model_without_consuming_it():
+    cfg = config()
+    event_logger, _ = logger(cfg)
+    model = QueueModel(final())
+    engine = DecisionEngine(
+        cfg,
+        model,
+        event_logger,
+        bootstrap_action=lambda state: action("print('public docs')"),
+    )
+    state = TaskState(task=task())
+
+    first = await engine.next_decision(state, 30)
+    assert isinstance(first, ActionDecision)
+    assert first.action.arguments["code"] == "print('public docs')"
+    assert len(model.decisions) == 1
+
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-1",
+            action=first.action,
+            results=[ActionResult(status="ok", observation={"output": "public docs"})],
+        )
+    )
+    second = await engine.next_decision(state, 30)
+    assert isinstance(second, FinalDecision)
+    assert not model.decisions
+
+
+async def test_automatic_completion_action_skips_ignored_reprompt_and_releases_final():
+    cfg = config()
+    event_logger, _ = logger(cfg)
+    model = QueueModel(final())
+    engine = DecisionEngine(
+        cfg,
+        model,
+        event_logger,
+        completion_check=lambda state: any(
+            "Marked the active task complete." in str(result.observation.get("output", ""))
+            for attempt in state.attempts
+            for result in attempt.results
+        ),
+        completion_action=lambda state, decision: action(
+            "print(apis.supervisor.complete_task(answer='42'))"
+        ),
+    )
+    state = TaskState(task=task())
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-1",
+            action=action().action,
+            results=[ActionResult(status="ok", observation={"output": "public work"})],
+        )
+    )
+
+    completion = await engine.next_decision(state, 30)
+    assert isinstance(completion, ActionDecision)
+    assert "complete_task" in completion.action.arguments["code"]
+    assert state.pending_final is not None
+    assert not model.decisions
+
+    engine.record_attempt(
+        state,
+        ActionAttempt(
+            call_id="call-2",
+            action=completion.action,
+            results=[
+                ActionResult(
+                    status="ok", observation={"output": "Marked the active task complete."}
+                )
+            ],
+        ),
+    )
+    released = await engine.next_decision(state, 30)
+    assert isinstance(released, FinalDecision)
+    assert released.completed is True
 
 
 async def test_engine_repels_give_up_after_recoverable_attempts():
@@ -295,12 +460,70 @@ async def test_runner_records_uncertain_execution_and_stops():
     assert attempt.results[0].error.type == "execution_outcome_unknown"
 
 
-async def test_runner_action_budget_produces_controlled_final():
+async def test_runner_action_budget_requests_final_without_another_execution():
     cfg = config(action_budget=1)
     event_logger, _ = logger(cfg)
-    engine = DecisionEngine(cfg, QueueModel(action(), action()), event_logger)
-    runner = TaskRunner(cfg, engine, ScriptedExecutor(), event_logger)
+    engine = DecisionEngine(cfg, QueueModel(action(), final(False, True)), event_logger)
+    executor = ScriptedExecutor()
+    runner = TaskRunner(cfg, engine, executor, event_logger)
     result = await runner.run(task())
     assert result.completed is False
-    assert "budget" in result.reason
+    assert result.reason == "Cannot complete"
     assert runner.last_state.action_attempts == 1
+    assert len(executor.calls) == 1
+
+
+async def test_decision_reserve_switches_to_final_only_mode():
+    now = [0.0]
+
+    class AdvancingExecutor:
+        def __init__(self):
+            self.calls = 0
+
+        async def execute(self, call_id, actions, timeout):
+            self.calls += 1
+            now[0] += 0.06
+            return [ActionResult(status="ok", observation={"output": "work"})]
+
+    cfg = config(
+        episode_timeout_seconds=0.2,
+        final_response_reserve_seconds=0.05,
+        decision_reserve_seconds=0.1,
+    )
+    event_logger, _ = logger(cfg)
+    engine = DecisionEngine(cfg, QueueModel(action(), final(False, True)), event_logger)
+    executor = AdvancingExecutor()
+    runner = TaskRunner(cfg, engine, executor, event_logger, clock=lambda: now[0])
+
+    result = await runner.run(task())
+
+    assert result.completed is False
+    assert result.reason == "Cannot complete"
+    assert executor.calls == 1
+    assert any("Finalization is now required" in item for item in runner.last_state.validation_feedback)
+
+
+async def test_runner_releases_deferred_final_after_last_allowed_action():
+    cfg = config(action_budget=1, output_retries=1)
+    event_logger, _ = logger(cfg)
+    completion_action = action("print(apis.supervisor.complete_task(answer='42'))")
+    engine = DecisionEngine(
+        cfg,
+        QueueModel(final(), completion_action),
+        event_logger,
+        completion_check=lambda state: any(
+            "Marked the active task complete." in str(result.observation.get("output", ""))
+            for attempt in state.attempts
+            for result in attempt.results
+        ),
+    )
+    executor = ScriptedExecutor(
+        [ActionResult(status="ok", observation={"output": "Marked the active task complete."})]
+    )
+    runner = TaskRunner(cfg, engine, executor, event_logger)
+
+    result = await runner.run(task())
+
+    assert result.completed is True
+    assert runner.last_state.action_attempts == 1
+    assert len(executor.calls) == 1

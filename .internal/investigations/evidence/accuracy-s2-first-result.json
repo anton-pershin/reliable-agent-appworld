@@ -1,0 +1,36 @@
+{
+  "run_id": "20261126T101051-580580Z-278a868571f1",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T101051-580580Z-278a868571f1",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "1705b2718777ccdffde0ca01445dd75aed2eca5c",
+  "population": {"frozen_independent_tasks": 12, "repeats": 1, "episode_concurrency": 2},
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.08333333333333333},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.8181818181818182},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 12,
+    "successes": 1,
+    "successful_task_id": "31dc501_1",
+    "successful_episode_seconds": 109.6203,
+    "completed_true": 3,
+    "incorrect_confident_completions": 2,
+    "model_request_timeout_stops": 9,
+    "mean_actions": 2.4167,
+    "mean_seconds": 56.9332
+  },
+  "successful_public_trace": [
+    "Authenticated phone onboarding used the supervisor phone number correctly.",
+    "The agent recovered from a repeat_days=None error, selected the weekday Wake Up alarm, updated snooze_minutes to 5, printed the update response, and verified show_alarm returned 5.",
+    "Automatic no-answer completion supplied the missing printed Supervisor evidence and released the final."
+  ],
+  "failed_completion_findings": [
+    "The followed-artist task found Eliana Harper but submitted 'Eliana Harper with 29 followers' rather than only the requested entity.",
+    "The Venmo task used host datetime.now/year, aggregated payment requests rather than actual roommate-filtered transactions, and submitted formatted $742.0; both logic and answer typing were wrong.",
+    "Nine episodes stopped after a single 30-second model timeout, most after one to three actions; no-identical-retry avoided waste but did not produce a decision."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "The mechanism generalizes independently but remains low accuracy. Test entity/numeric answer normalization, DateTime.now/contact semantics, narrower relevant-app authentication, and a single 60-second model cap. S3 on the S2 runtime remains useful repeat evidence; N must repeat S2/S3 before final spec/full validation."
+}

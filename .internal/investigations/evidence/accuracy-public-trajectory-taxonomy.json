@@ -1,0 +1,67 @@
+{
+  "source_run_id": "20261125T132059-063795Z-2c936467dd77",
+  "source_run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261125T132059-063795Z-2c936467dd77",
+  "analysis_scope": "All 630 public protocol trajectories and aggregate episode records; no evaluator reports, benchmark.json, record.json, ground truth, private task metadata, or credentials.",
+  "termination": {
+    "any_timeout": 615,
+    "any_timeout_rate": 0.9761904761904762,
+    "controlled_runner_timeouts": 614,
+    "model_output_retry_exhausted": 6,
+    "self_completed": 9,
+    "controlled_runner_timeout_median_seconds": 80.0081,
+    "configured_effective_runner_seconds": 80.0,
+    "maximum_actions_observed": 9,
+    "action_budget": 30
+  },
+  "completion": {
+    "actual_complete_task_executions": 1,
+    "complete_task_calls_with_answer": 0,
+    "self_completed_without_complete_task": 9,
+    "direct_answer_query_episodes": 194,
+    "direct_answer_query_timeouts": 188,
+    "near_complete_public_example": {
+      "episode_id": "c4702003a9cb4d66b41ab463dd4729f9",
+      "task_id": "c901732_3",
+      "finding": "Compared all seven album songs and executed play_music(song_id=41), then timed out before complete_task/finalization."
+    }
+  },
+  "api_and_auth": {
+    "episodes_with_execution_errors": 445,
+    "execution_error_results": 821,
+    "error_rate_per_action": 0.20321782178217823,
+    "nonexistent_api_errors": 364,
+    "disallowed_import_or_function_errors": 192,
+    "requester_post_attribute_errors": 124,
+    "episodes_with_auth_failure_payloads": 152,
+    "auth_failure_observations": 170,
+    "literal_http_401_403_payloads": 0
+  },
+  "discovery_and_repetition": {
+    "api_doc_counting_predicate": "Conservative AST-based identification of actions making API-doc calls; unlike the initial broad textual count, this excludes some compound/non-executing references.",
+    "api_doc_actions": 2263,
+    "api_doc_action_fraction": 0.5601485148514851,
+    "api_doc_observation_character_fraction": 0.768,
+    "episodes_without_nonlogin_high_level_domain_api": 435,
+    "episodes_without_nonlogin_high_level_domain_api_rate": 0.6904761904761905,
+    "episodes_with_repeated_exact_code": 199,
+    "duplicate_attempts": 255,
+    "consecutive_duplicates": 178,
+    "documentation_share_of_duplicates": 0.7254901960784313,
+    "immediate_repeated_error_retries": 78
+  },
+  "repeat_behavior": {
+    "same_termination_class_pairs": 305,
+    "repeat_pairs": 315,
+    "identical_full_action_sequence_pairs": 2,
+    "mean_common_action_prefix": 1.47619,
+    "exact_nontrivial_final_answer_matches": 0,
+    "interpretation": "Stable zero outcomes reflect systemic timeout, not stable successful reasoning."
+  },
+  "context_evidence": {
+    "retained_truncation_marker_episodes": 0,
+    "maximum_episode_observation_characters": 57579,
+    "maximum_single_observation_characters": 46679,
+    "interpretation": "Context loss is not supported as a leading explanation from retained public evidence, although large documentation outputs amplify latency and repetition."
+  },
+  "decision": "Rank effective decision latency and docs/auth/interface thrash ahead of task complexity or context overflow. Test better discovery/onboarding, print discipline, duplicate recovery, and completion finalization on small public screens before any broad run."
+}

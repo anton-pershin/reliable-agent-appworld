@@ -39,6 +39,10 @@
 | Action decision | A structured model output containing one action request for the runner. |
 | Final decision | A structured model output containing the completion declaration, answer, confidence, `likely_incorrect` flag, and short reason. |
 | Final-response reserve | Time reserved at the end of the episode budget for a controlled final response without another model request. |
+| Decision reserve | A configurable portion of the episode budget before the final-response reserve during which the runner requests a final-only model decision instead of ordinary actions. |
+| Deferred final | A model-produced final decision retained in task state until injected public completion evidence permits its release. |
+| Public completion evidence | A syntactically identified successful task-completion invocation together with its public success observation; it is stronger than a model completion claim but does not prove independent task correctness. |
+| Onboarding action | A deterministic public discovery, authentication, or contact-prefetch action executed before the first model decision for suitable objectives. |
 | ReAct | An interaction pattern in which model decisions alternate with environment observations; this baseline uses public code-execution results for subsequent decisions. |
 
 ### Model and tool access

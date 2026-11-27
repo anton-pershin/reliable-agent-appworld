@@ -71,7 +71,7 @@ class PydanticAIModelClient:
                 "top_k": self.config.top_k,
                 "min_p": self.config.min_p,
                 "repetition_penalty": self.config.repetition_penalty,
-                "chat_template_kwargs": {"enable_thinking": True},
+                "chat_template_kwargs": {"enable_thinking": self.config.thinking},
             },
         }
         if text:
@@ -82,17 +82,27 @@ class PydanticAIModelClient:
         return {
             **self.config.public_dict(),
             "seed": "not-configured",
-            "thinking": True,
+            "thinking": self.config.thinking,
         }
 
     def _attempt_payload(self, attempt, observation_limit: int) -> dict[str, Any]:
         payload = attempt.model_dump(mode="json")
-        rendered = json.dumps(payload["results"], ensure_ascii=False, default=str)
-        if len(rendered) > observation_limit:
-            omitted = len(rendered) - observation_limit
-            payload["results"] = (
-                rendered[:observation_limit] + f"...<observation truncated {omitted} chars>"
-            )
+        for result in payload["results"]:
+            observation = result.get("observation", {})
+            rendered = json.dumps(observation, ensure_ascii=False, default=str)
+            if len(rendered) <= observation_limit:
+                continue
+            marker = f"...<observation truncated {len(rendered) - observation_limit} chars; middle omitted>..."
+            content_budget = max(2, observation_limit - len(marker))
+            head_length = content_budget // 2
+            tail_length = content_budget - head_length
+            result["observation"] = {
+                "truncated_json": (
+                    rendered[:head_length] + marker + rendered[-tail_length:]
+                ),
+                "original_chars": len(rendered),
+                "recovery": "Reprint a smaller targeted value if the omitted middle is needed.",
+            }
         return payload
 
     def public_history(self, state: TaskState) -> list[Any]:
@@ -146,17 +156,41 @@ class PydanticAIModelClient:
             self.logger.emit("context_trimmed", retained_attempts=len(entries))
         return result
 
-    def prompt(self, state: TaskState) -> str:
+    def _task_payload(self, state: TaskState) -> dict[str, Any]:
+        payload = state.task.model_dump(mode="json")
+        raw_input = payload["input"]
+        try:
+            decoded = json.loads(raw_input)
+        except (json.JSONDecodeError, TypeError):
+            return payload
+        if not isinstance(decoded, dict):
+            return payload
+        instruction = decoded.get("instruction")
+        if isinstance(instruction, str):
+            payload["objective"] = instruction
+            payload["input"] = {
+                key: value for key, value in decoded.items() if key != "instruction"
+            }
+        else:
+            payload["input"] = decoded
+        return payload
+
+    def prompt(self, state: TaskState, remaining_seconds: float | None = None) -> str:
+        budget = {}
+        if remaining_seconds is not None:
+            budget = {"remaining_episode_seconds": max(0, round(remaining_seconds, 1))}
         return json.dumps(
             {
-                "task": state.task.model_dump(mode="json"),
+                "task": self._task_payload(state),
+                **budget,
                 "action_attempts": state.action_attempts,
+                "completion_observed": state.completion_observed,
                 "remaining_action_attempts": max(
                     0, self.config.action_budget - state.action_attempts
                 ),
                 "history": self.public_history(state),
                 "validation_feedback": state.validation_feedback[-10:],
-                "prompt_version": "react-v2",
+                "prompt_version": "react-v2.4-verified",
                 "format": "Return ActionDecision or FinalDecision only",
             },
             ensure_ascii=False,
@@ -207,7 +241,7 @@ class PydanticAIModelClient:
             return await self._text_output(state, deadline)
 
     async def _tool_output(self, state: TaskState, remaining_seconds: float) -> Decision:
-        prompt = self.prompt(state)
+        prompt = self.prompt(state, remaining_seconds)
         operation_id = f"decision-{state.model_requests + 1}"
         state.model_requests += 1
         self.logger.emit(
@@ -239,7 +273,7 @@ class PydanticAIModelClient:
         return result.output
 
     async def _text_output(self, state: TaskState, deadline: float) -> Decision:
-        base_prompt = self.prompt(state) + "\nReturn only one JSON object matching this schema:\n"
+        base_prompt = self.prompt(state, deadline - time.monotonic()) + "\nReturn only one JSON object matching this schema:\n"
         schema = json.dumps(_DECISION_ADAPTER.json_schema(), ensure_ascii=False)
         feedback = ""
         for attempt in range(self.config.output_retries + 1):

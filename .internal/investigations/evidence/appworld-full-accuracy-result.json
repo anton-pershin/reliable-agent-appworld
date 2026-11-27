@@ -1,0 +1,42 @@
+{
+  "run_id": "20261126T131246-900491Z-c65d4f90b51e",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T131246-900491Z-c65d4f90b51e",
+  "profile": "appworld",
+  "validation_scope": "full",
+  "run_status": "completed",
+  "solution_commit": "21dc8d4014b0cfe68ab65ec0cd30876bb1bb2bc9",
+  "solution_overrides": "--log-level ERROR",
+  "implementation_outcome": "valid but not accepted",
+  "started_at_utc": "2026-11-26T13:12:46.900491Z",
+  "updated_at_utc": "2026-11-27T11:05:04.054295Z",
+  "approximate_wall_hours": 21.87,
+  "population": {
+    "planned_episodes": 630,
+    "observed_episode_records": 630,
+    "successful_episodes": 82,
+    "successes_by_repeat": {"1": 39, "2": 43},
+    "infrastructure_failures": 0,
+    "final_responses_received": 629,
+    "invalid_error_flags": 0,
+    "likely_incorrect_true": 432,
+    "mean_agent_episode_seconds": 103.5533,
+    "maximum_agent_episode_seconds": 166.9151,
+    "aggregate_agent_episode_hours": 18.1218
+  },
+  "criteria": {
+    "AC1": {"status": "valid", "metric": "VM1/unperturbed_overall_success_rate", "value": 0.13015873015873017, "acceptance_status": "rejected"},
+    "AC2": {"status": "accepted", "error_flag_precision": 1.0, "error_flag_recall": 0.7883211678832117},
+    "AC3": {"status": "accepted", "repeated_run_overall_success_rate_range": 0.012698412698412681},
+    "AC7": {"status": "accepted", "timely_final_response_rate": 0.9984126984126984}
+  },
+  "baseline_comparison": {
+    "baseline_run_id": "20261125T132059-063795Z-2c936467dd77",
+    "baseline_success_rate": 0.0,
+    "current_success_rate": 0.13015873015873017,
+    "absolute_success_rate_improvement": 0.13015873015873017,
+    "baseline_successful_episodes": 0,
+    "current_successful_episodes": 82
+  },
+  "private_evaluation_reports_inspected": false,
+  "interpretation": "The increment satisfies its at-least-valid full-validation gate and demonstrates substantial genuine task-success improvement. It is not an accepted project implementation because AC1 remains below its threshold. AC2/AC3/AC7 were accepted. The investigation remains active for further accuracy and error-awareness improvements."
+}

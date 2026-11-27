@@ -31,6 +31,9 @@ from reliable_agent_appworld.observability import BoundedRedactingStream, EventL
 from reliable_agent_appworld.protocol import (
     JsonLinesTransport,
     ProtocolError,
+    appworld_completion_action,
+    appworld_completion_observed,
+    appworld_discovery_action,
     decode_appworld_public_input,
 )
 from reliable_agent_appworld.runner import TaskRunner
@@ -91,6 +94,171 @@ async def test_persistent_no_evidence_success_becomes_controlled_failure(retries
     assert "without public task evidence" in result.reason
 
 
+def test_appworld_completion_check_requires_actual_successful_call_not_docs_or_fail():
+    state = TaskState(task=task())
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-1",
+            action=ActionRequest(
+                name="execute_code",
+                arguments={
+                    "code": "# apis.supervisor.complete_task() in a comment is not execution\nprint(apis.api_docs.show_api_doc(app_name='supervisor', api_name='complete_task'))"
+                },
+            ),
+            results=[
+                ActionResult(
+                    status="ok", observation={"output": "Marked the active task complete."}
+                )
+            ],
+        )
+    )
+    assert not appworld_completion_observed(state)
+
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-2",
+            action=ActionRequest(
+                name="execute_code",
+                arguments={"code": "apis.supervisor.complete_task(status='fail')"},
+            ),
+            results=[
+                ActionResult(
+                    status="ok", observation={"output": "Marked the active task complete."}
+                )
+            ],
+        )
+    )
+    assert not appworld_completion_observed(state)
+
+    state.record_attempt(
+        ActionAttempt(
+            call_id="call-3",
+            action=ActionRequest(
+                name="execute_code",
+                arguments={"code": "print(apis.supervisor.complete_task(answer='42'))"},
+            ),
+            results=[
+                ActionResult(
+                    status="ok",
+                    observation={"output": '{"message": "Marked the active task complete."}'},
+                )
+            ],
+        )
+    )
+    assert appworld_completion_observed(state)
+
+
+def test_appworld_discovery_action_uses_only_public_objective():
+    public_task = task().model_copy(
+        update={
+            "input": json.dumps(
+                {
+                    "instruction": "Inspect Venmo records 🌐",
+                    "supervisor": {"email": "public@example.invalid"},
+                }
+            )
+        }
+    )
+    state = TaskState(task=public_task)
+
+    decision = appworld_discovery_action(state)
+
+    assert decision is not None
+    code = decision.action.arguments["code"]
+    compile(code, "<public-bootstrap>", "exec")
+    assert "Inspect Venmo records 🌐" in code
+    assert "search_api_docs(query=objective" in code
+    assert '("show_profile", "show_account_passwords")' in code
+    assert 'api_name="login"' in code
+    assert "public@example.invalid" not in code
+    assert "access_tokens = {}" not in code
+    authenticated = appworld_discovery_action(state, authenticate=True)
+    assert authenticated is not None
+    authenticated_code = authenticated.action.arguments["code"]
+    compile(authenticated_code, "<authenticated-bootstrap>", "exec")
+    assert "access_tokens = {}" in authenticated_code
+    assert 'app_name == "phone"' in authenticated_code
+    assert "getattr(apis, app_name).login" in authenticated_code
+    assert "apis.phone.search_contacts" in authenticated_code
+    assert 'print("Access token' not in authenticated_code
+    assert "public@example.invalid" not in authenticated_code
+    assert appworld_discovery_action(TaskState(task=task())) is None
+
+    for public_instruction in (
+        "What is Velvet Echo's top song?",
+        "Find Velvet Echo's top song.",
+        "Show the title of Velvet Echo's top song.",
+    ):
+        public_lookup = TaskState(
+            task=task().model_copy(
+                update={"input": json.dumps({"instruction": public_instruction})}
+            )
+        )
+        assert appworld_discovery_action(public_lookup, private_only=True) is None
+    for private_objective in (
+        "Keep going to the previous song until Luna Starlight plays.",
+        "How many playlists do I have?",
+        "Add these songs to my queue.",
+        "Play the least listened song from this public album.",
+        "Find and play Velvet Echo's top song.",
+    ):
+        private_state = TaskState(
+            task=task().model_copy(
+                update={"input": json.dumps({"instruction": private_objective})}
+            )
+        )
+        assert appworld_discovery_action(private_state, private_only=True) is not None
+
+
+@pytest.mark.parametrize(
+    ("objective", "answer", "expected"),
+    [
+        ("What is the song title?", '"Swept Away"', 'answer="Swept Away"'),
+        ("What is the song title?", '"1984"', 'answer="1984"'),
+        ("Find Velvet Echo's top song.", "Bittersweet Memories Remain", 'answer="Bittersweet Memories Remain"'),
+        ("Show the title of Velvet Echo's top song.", "Bittersweet Memories Remain", 'answer="Bittersweet Memories Remain"'),
+        ("Find and play Velvet Echo's top song.", "Played it", "complete_task()"),
+        ("Show the title and play the song.", "Played it", "complete_task()"),
+        ("How many songs are there?", "23", "answer=23"),
+        ("How many songs are there?", '"23"', "answer=23"),
+        ("What is the total cost?", '"$23.50"', "answer=23.5"),
+        ("Using my Spotify data, who is the most followed artist?", "Eliana Harper with 29 followers", 'answer="Eliana Harper"'),
+        ("According to my plan. How long is the workout?", "In 2023 it was 60 minutes", "answer=60"),
+        ("Give me a comma-separated list.", "one, two", 'answer="one, two"'),
+        ("Who is the most followed artist?", "Eliana Harper with 29 followers", 'answer="Eliana Harper"'),
+        ("Who is the most followed artist?", "Eliana Harper is the most followed artist I follow on Spotify, with 29 followers.", 'answer="Eliana Harper"'),
+        ("Who is the most followed artist?", "The most followed artist is Eliana Harper.", 'answer="Eliana Harper"'),
+        ("How long is the workout?", "12.5 minutes", "answer=12.5"),
+        ("How long is the workout?", "In 2023, the workout was 60 minutes", "answer=60"),
+        ("How much was sent?", "Since 2023, one payment of $121.00 was sent; total $121.00", "answer=121.0"),
+        ("What is the total cost?", "$1,234.50", "answer=1234.5"),
+        ("Play the selected song.", "The song is playing.", "complete_task()"),
+    ],
+)
+def test_appworld_completion_action_preserves_direct_answer_semantics(
+    objective, answer, expected
+):
+    state = TaskState(
+        task=task().model_copy(update={"input": json.dumps({"instruction": objective})})
+    )
+    decision = final().model_copy(update={"answer": answer})
+
+    completion = appworld_completion_action(state, decision)
+
+    assert completion is not None
+    assert expected in completion.action.arguments["code"]
+
+
+def test_answer_seeking_empty_completion_answer_is_rejected():
+    state = TaskState(
+        task=task().model_copy(
+            update={"input": json.dumps({"instruction": "How many songs are there?"})}
+        )
+    )
+    decision = final().model_copy(update={"answer": "  "})
+    assert appworld_completion_action(state, decision) is None
+
+
 async def test_history_exact_budget_retains_latest_multibyte_attempt():
     config = AgentConfig(max_history_chars=1000, max_observation_chars=1000)
     event_logger, _ = logger(config)
@@ -131,6 +299,43 @@ def test_secrets_are_redacted_from_serialized_prompts_and_code():
     assert "appworld-session-secret" not in raw
     assert "code-password-secret" not in raw
     assert "max_output_tokens" in raw
+
+
+def test_standalone_jwt_and_unquoted_token_are_redacted():
+    event_logger, stream = logger()
+    jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.c2lnbmF0dXJl"
+    event_logger.emit(
+        "public_output",
+        text=f"access_token=standalone-session-secret and {jwt}",
+    )
+
+    raw = stream.getvalue()
+    assert "standalone-session-secret" not in raw
+    assert jwt not in raw
+    assert "<redacted>" in raw
+
+
+@pytest.mark.parametrize(
+    "assignment",
+    [
+        "password='two words'",
+        'password="two words"',
+        "access_token='two words'",
+        'access_token="two words"',
+    ],
+)
+def test_multiword_quoted_secrets_are_fully_redacted_everywhere(assignment):
+    event_logger, structured_stream = logger()
+    event_logger.emit("multiword_secret", text=assignment)
+
+    proxy_raw = io.StringIO()
+    proxy = BoundedRedactingStream(proxy_raw, max_bytes=1000)
+    proxy.write(assignment)
+
+    for raw in (structured_stream.getvalue(), proxy_raw.getvalue()):
+        assert "two" not in raw
+        assert "words" not in raw
+        assert "<redacted>" in raw
 
 
 def test_bounded_stderr_proxy_caps_dependency_output_and_redacts():
@@ -183,6 +388,7 @@ async def test_runner_enforces_timeout_for_executor_that_ignores_it():
         model_retries=0,
         episode_timeout_seconds=0.15,
         final_response_reserve_seconds=0.05,
+        decision_reserve_seconds=0,
     )
     event_logger, _ = logger(config)
     engine = DecisionEngine(config, QueueModel(action()), event_logger)
@@ -242,6 +448,9 @@ async def test_final_delivery_uses_remaining_shared_deadline(monkeypatch):
                 model_retries=0,
                 episode_timeout_seconds=0.12,
                 final_response_reserve_seconds=0.04,
+                decision_reserve_seconds=0,
+                bootstrap_discovery=False,
+                automatic_completion=False,
             )
         )
     finally:
@@ -386,9 +595,12 @@ def test_stalled_observation_still_delivers_final_and_exits_with_stdin_open():
             "--model-retries",
             "0",
             "--episode-timeout-seconds",
-            "2",
+            "3",
             "--final-response-reserve-seconds",
             "0.25",
+            "--decision-reserve-seconds",
+            "0",
+            "--no-bootstrap-discovery",
         ],
         cwd=root,
         env=env,

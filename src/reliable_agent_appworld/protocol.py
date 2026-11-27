@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import ast
 import asyncio
 import io
 import json
 import math
 import os
+import re
 import sys
 import time
 from collections.abc import Sequence
@@ -13,6 +15,7 @@ from typing import BinaryIO, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from .contracts import (
+    ActionDecision,
     ActionRequest,
     ActionResult,
     ActionsMessage,
@@ -22,6 +25,7 @@ from .contracts import (
     ObservationMessage,
     Task,
     TaskMessage,
+    TaskState,
 )
 
 MAX_PROTOCOL_BYTES = 1_000_000
@@ -76,6 +80,327 @@ def decode_appworld_public_input(task: Task) -> Task:
         payload, ensure_ascii=False, indent=2, sort_keys=True, allow_nan=False
     )
     return task.model_copy(update={"input": normalized})
+
+
+def _successful_complete_task_call(code: str) -> bool:
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        function = node.func
+        if function.attr != "complete_task" or not isinstance(function.value, ast.Attribute):
+            continue
+        supervisor = function.value
+        if (
+            supervisor.attr != "supervisor"
+            or not isinstance(supervisor.value, ast.Name)
+            or supervisor.value.id != "apis"
+        ):
+            continue
+        failed = any(
+            keyword.arg == "status"
+            and isinstance(keyword.value, ast.Constant)
+            and keyword.value.value == "fail"
+            for keyword in node.keywords
+        )
+        if not failed:
+            return True
+    return False
+
+
+def _attempt_completion_succeeded(attempt) -> bool:
+    code = attempt.action.arguments.get("code")
+    if not isinstance(code, str) or not _successful_complete_task_call(code):
+        return False
+    return any(
+        result.status == "ok"
+        and "Marked the active task complete." in str(result.observation.get("output", ""))
+        for result in attempt.results
+    )
+
+
+def appworld_completion_call_id(state: TaskState) -> str | None:
+    for attempt in reversed(state.attempts):
+        if _attempt_completion_succeeded(attempt):
+            return attempt.call_id
+    return None
+
+
+def appworld_completion_observed(state: TaskState) -> bool:
+    """Recognize public successful completion without coupling the generic engine to AppWorld."""
+    return appworld_completion_call_id(state) is not None
+
+
+_CREDENTIAL_NAME = re.compile(
+    r".*(?:password|access_token|tokens?|login|login_response|account_password_map).*",
+    re.IGNORECASE,
+)
+
+
+def appworld_validate_action(state: TaskState, decision: ActionDecision) -> None:
+    """Reject obvious raw-requester and credential-printing code before execution."""
+    del state
+    code = decision.action.arguments.get("code")
+    if not isinstance(code, str):
+        return
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(
+            alias.name == "apis" for alias in node.names
+        ):
+            raise ValueError("Do not import apis; use the preloaded high-level API object")
+        if isinstance(node, ast.Name) and node.id == "requester":
+            raise ValueError("Raw requester/HTTP access is forbidden; use high-level app APIs")
+        if isinstance(node, ast.Attribute) and node.attr == "requester":
+            raise ValueError("Raw requester/HTTP access is forbidden; use high-level app APIs")
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+            continue
+        if node.func.id != "print":
+            continue
+        for argument in node.args:
+            for child in ast.walk(argument):
+                if isinstance(child, ast.Name) and _CREDENTIAL_NAME.fullmatch(child.id):
+                    raise ValueError(
+                        "Do not print passwords, tokens, login responses, or credential variables"
+                    )
+                if isinstance(child, ast.Attribute) and child.attr in {
+                    "login",
+                    "show_account_passwords",
+                }:
+                    raise ValueError("Do not print raw login or account-password responses")
+
+
+_PRIVATE_CONTEXT = re.compile(
+    r"\b(?:my|mine|me|i|current|previous|next|feed|queue|libraries|library|account|friends?|roommates?|coworkers?|spouse|wife|husband|transactions?|notes?|files?|bills?|tasks?|alarms?|messages?|playlists?)\b",
+    re.IGNORECASE,
+)
+
+
+def appworld_discovery_action(
+    state: TaskState, *, authenticate: bool = False, private_only: bool = False
+) -> ActionDecision | None:
+    """Build one public, task-independent API-doc onboarding action for AppWorld."""
+    try:
+        public_input = json.loads(state.task.input)
+    except json.JSONDecodeError:
+        return None
+    objective = public_input.get("instruction") if isinstance(public_input, dict) else None
+    if not isinstance(objective, str) or not objective:
+        return None
+    if private_only and (
+        _PRIVATE_CONTEXT.search(objective) is None and _objective_requests_answer(objective)
+    ):
+        return None
+    authentication = '''
+# Establish permitted public sessions once; retain tokens without printing secrets.
+supervisor_profile = apis.supervisor.show_profile()
+account_password_map = {
+    item["account_name"]: item["password"]
+    for item in apis.supervisor.show_account_passwords()
+}
+access_tokens = {}
+authenticated_apps = []
+for app_name in app_names[:4]:
+    if app_name not in account_password_map:
+        continue
+    username = supervisor_profile["phone_number"] if app_name == "phone" else supervisor_profile["email"]
+    login_response = getattr(apis, app_name).login(
+        username=username, password=account_password_map[app_name]
+    )
+    if isinstance(login_response, dict) and "access_token" in login_response:
+        access_tokens[app_name] = login_response["access_token"]
+        authenticated_apps.append(app_name)
+        print("Saved access token for", app_name, "as access_tokens[%r]" % app_name)
+    else:
+        print("Login failed for", app_name, "with a non-token response; credentials are not printed")
+print("Authenticated apps:", authenticated_apps)
+if relation_context and "phone" in access_tokens:
+    phone_contacts = []
+    contact_page_index = 0
+    while True:
+        contact_page = apis.phone.search_contacts(
+            access_token=access_tokens["phone"], page_index=contact_page_index, page_limit=20
+        )
+        if not isinstance(contact_page, list):
+            print("Contact prefetch unavailable for phone; raw response is not printed")
+            break
+        phone_contacts.extend(contact_page)
+        if len(contact_page) < 20:
+            break
+        contact_page_index += 1
+    print("Public contacts and relationships:")
+    for contact in phone_contacts:
+        print({
+            "name": (contact.get("first_name"), contact.get("last_name")),
+            "email": contact.get("email"),
+            "phone_number": contact.get("phone_number"),
+            "relationships": contact.get("relationships"),
+        })
+''' if authenticate else ""
+    code = f'''# Deterministic public API onboarding; no private data is accessed.
+objective = {json.dumps(objective, ensure_ascii=False)}
+print("Objective:", objective)
+
+def compact_doc(doc):
+    if not isinstance(doc, dict) or "api_name" not in doc:
+        return doc
+    return {{
+        "app_name": doc.get("app_name"),
+        "api_name": doc.get("api_name"),
+        "description": doc.get("description"),
+        "parameters": [
+            (p.get("name"), p.get("type"), p.get("required"), p.get("description"), p.get("constraints"))
+            for p in doc.get("parameters", [])
+        ],
+        "success_response": doc.get("response_schemas", {{}}).get("success"),
+    }}
+
+docs = apis.api_docs.search_api_docs(query=objective, page_index=0, page_limit=10)
+print("Relevant API schemas:")
+if isinstance(docs, list):
+    for doc in docs:
+        print(compact_doc(doc))
+else:
+    print(docs)
+    docs = []
+
+print("Supervisor credential/profile schemas:")
+for api_name in ("show_profile", "show_account_passwords"):
+    print(compact_doc(apis.api_docs.show_api_doc(app_name="supervisor", api_name=api_name)))
+
+app_names = sorted({{doc.get("app_name") for doc in docs if isinstance(doc, dict)}} - {{"api_docs", "supervisor", None}})
+app_aliases = {{
+    "amazon": ("amazon",),
+    "file_system": ("file system", "file_system"),
+    "gmail": ("gmail",),
+    "phone": ("phone",),
+    "simple_note": ("simple note", "simple_note"),
+    "splitwise": ("splitwise",),
+    "spotify": ("spotify",),
+    "todoist": ("todoist",),
+    "venmo": ("venmo",),
+}}
+objective_lower = objective.lower()
+mentioned = [
+    name for name in app_names
+    if any(alias in objective_lower for alias in app_aliases.get(name, (name,)))
+]
+if mentioned:
+    app_names = mentioned
+relation_context = any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent", "spouse", "wife", "husband"))
+if relation_context:
+    if "phone" not in app_names:
+        app_names.append("phone")
+app_names = sorted(set(app_names))
+print("Relevant app login schemas:")
+for app_name in app_names[:4]:
+    print(compact_doc(apis.api_docs.show_api_doc(app_name=app_name, api_name="login")))
+{authentication}
+'''
+    return ActionDecision(
+        action=ActionRequest(name="execute_code", arguments={"code": code})
+    )
+
+
+_ANSWER_QUESTION = re.compile(
+    r"(?:^|[.!?]\s+|,\s*)(?:what|who|whom|whose|which|when|where|why|how|is|are|was|were|do|does|did|can|could|would|should)\b",
+    re.IGNORECASE,
+)
+_ANSWER_IMPERATIVE = re.compile(
+    r"(?:^|[.!?]\s+|,\s*)(?:find|show|give|tell|list|provide|calculate|compute|determine|identify|return)\b",
+    re.IGNORECASE,
+)
+_ACTION_IMPERATIVE = re.compile(
+    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment)\b",
+    re.IGNORECASE,
+)
+
+
+def _objective_requests_answer(objective: str) -> bool:
+    if objective.rstrip().endswith("?") or _ANSWER_QUESTION.search(objective):
+        return True
+    answer = _ANSWER_IMPERATIVE.search(objective)
+    if answer is None:
+        return False
+    action = _ACTION_IMPERATIVE.search(objective)
+    return action is None or answer.start() > action.start()
+
+
+def _direct_answer(objective: str, value: str) -> str | int | float:
+    stripped = value.strip()
+    answer_requested = _objective_requests_answer(objective)
+    if answer_requested and re.search(r"\bwho\b", objective, re.IGNORECASE):
+        stripped = re.split(r"\s+with\s+\d", stripped, maxsplit=1)[0].rstrip()
+        stripped = re.sub(r"\s*\([^()]*\)\s*$", "", stripped).rstrip()
+        if re.search(r"\s+is\s+", stripped, re.IGNORECASE):
+            left, right = re.split(
+                r"\s+is\s+", stripped, maxsplit=1, flags=re.IGNORECASE
+            )
+            if left.strip().lower() in {"it", "this", "answer", "the answer"}:
+                stripped = right
+            else:
+                stripped = left if len(left.split()) <= len(right.split()) else right
+        stripped = stripped.strip(" ,").rstrip(".")
+    if not stripped:
+        return stripped
+    if (
+        len(stripped) >= 2
+        and stripped[0] == stripped[-1]
+        and stripped[0] in {'"', "'"}
+    ):
+        try:
+            stripped = json.loads(stripped) if stripped[0] != "'" else stripped[1:-1]
+        except json.JSONDecodeError:
+            pass
+    numeric_objective = answer_requested and (
+        re.search(r"\bhow\b", objective, re.IGNORECASE)
+        or re.search(r"\b(?:total|cost|amount|duration)\b", objective, re.IGNORECASE)
+    )
+    if not numeric_objective:
+        return stripped
+    numeric_match = re.fullmatch(r"[-+]?\$?\d[\d,]*(?:\.\d+)?", stripped)
+    numeric = numeric_match.group(0) if numeric_match else None
+    if numeric is None:
+        currency = re.findall(r"[-+]?\$\d[\d,]*(?:\.\d+)?", stripped)
+        numbers = re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", stripped)
+        numeric = currency[-1] if currency else (numbers[-1] if numbers else None)
+    if numeric is not None:
+        normalized = str(numeric).replace("$", "").replace(",", "")
+        try:
+            return json.loads(normalized)
+        except json.JSONDecodeError:
+            pass
+    return stripped
+
+
+def appworld_completion_action(
+    state: TaskState, decision: FinalDecision
+) -> ActionDecision | None:
+    """Translate a model completion claim into its required public AppWorld call."""
+    try:
+        public_input = json.loads(state.task.input)
+    except json.JSONDecodeError:
+        return None
+    objective = public_input.get("instruction") if isinstance(public_input, dict) else None
+    if not isinstance(objective, str) or not objective:
+        return None
+    if _objective_requests_answer(objective):
+        direct_answer = _direct_answer(objective, decision.answer)
+        if direct_answer == "":
+            return None
+        answer = json.dumps(direct_answer, ensure_ascii=False)
+        code = f"print(apis.supervisor.complete_task(answer={answer}))"
+    else:
+        code = "print(apis.supervisor.complete_task())"
+    return ActionDecision(
+        action=ActionRequest(name="execute_code", arguments={"code": code})
+    )
 
 
 def _file_descriptor(stream: BinaryIO) -> int | None:

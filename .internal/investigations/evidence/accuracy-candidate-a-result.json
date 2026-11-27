@@ -1,0 +1,32 @@
+{
+  "run_id": "20261126T080128-094203Z-fa9b991fa89a",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T080128-094203Z-fa9b991fa89a",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "50e9629bd0e262d331e241b2c71fc67ac9fcf7d1",
+  "candidate": "A: verified completion/deferred final, react-v3, non-thinking",
+  "population": {"mechanism_screen_tasks": 6, "repeats": 1, "episode_concurrency": 2},
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.0},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.8333333333333334},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "records": 6,
+    "successes": 0,
+    "completed_true": 1,
+    "likely_incorrect_true": 5,
+    "mean_actions": 24.0,
+    "mean_seconds": 107.9383,
+    "action_budget_stops": 4,
+    "timeout_stops": 1
+  },
+  "public_trace_findings": [
+    "The completion guard worked mechanically: the only completed=true final first obtained public complete_task evidence.",
+    "That completed answer was wrong because the agent used an incomplete/unverified song search; successful completion evidence does not establish task correctness.",
+    "Five other episodes repeatedly requested broad API descriptions or invalid APIs until action/time exhaustion; non-thinking did not recover from the repetition.",
+    "The faster generation increased available turns but not useful progress, with a mean of 24 actions and no successes."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Reject non-thinking candidate A and do not expand its population. Run the prespecified thinking candidate on the same screen and direct-objective/finalization revision. Preserve completion verification but treat it only as a correctness boundary, not a task-quality signal."
+}

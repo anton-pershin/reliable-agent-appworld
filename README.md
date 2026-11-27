@@ -2,7 +2,7 @@
 
 A small reactive agent for AppWorld and other caller-controlled tool environments. It uses Pydantic AI structured decisions, requests one code action at a time, learns from public observations, and returns an explicit completion declaration with confidence and `likely_incorrect` self-assessment.
 
-The reusable engine and runner do not import AppWorld or the validation service. The JSON Lines integration owns only protocol translation and external action execution.
+The reusable engine and runner do not import AppWorld or the validation service. The JSON Lines integration supplies protocol translation plus injected public onboarding/completion policies; the decision engine depends only on generic callbacks and typed state.
 
 ## Install
 
@@ -36,17 +36,23 @@ Important defaults:
 | Output mode | `auto`: structured tool output, then JSON text after provider rejection |
 | Sampling | Temperature `0.6`, top-p `0.95`, top-k `20`, min-p `0` |
 | Penalties | Presence `0`, repetition `1.0` |
-| Maximum generated tokens | `4096` |
-| Internal episode budget | `285` seconds |
-| Action budget | `50` single-action calls |
-| Final-response reserve | `25` seconds |
+| Maximum generated tokens | `1024` |
+| Model request cap / identical outer retries | `60` seconds / `0` |
+| Internal episode budget | `180` seconds |
+| Action budget | `30` single-action calls |
+| Decision reserve | `35` seconds for final-only decisions |
+| Final-response reserve | `15` seconds |
+| Adaptive public discovery/authentication | Enabled for private-context and action-only objectives |
+| Automatic observed completion | Enabled |
 | Individual observation budget | `12,000` characters |
 | Public history budget | `24,000` characters |
 | Maximum log bytes | `750,000` |
 | Process-wide stderr proxy | `900,000` bytes |
 | Cumulative protocol stdout | `1,000,000` bytes with reserved final space |
 
-No model seed is configured. Model generation, retries, repairs, action execution, and final delivery share an absolute episode deadline. Real standard-input/output descriptors use nonblocking I/O, and protocol stdout reserves space for a final response. Controlled failure responses use `completed=false` and `likely_incorrect=true`. The reusable runner propagates cancellation; the one-episode CLI applies its own bounded controlled-final policy.
+No model seed is configured. Model generation, repairs, action execution, and final delivery share an absolute episode deadline; transient identical outer model retries are disabled by default. Real standard-input/output descriptors use nonblocking I/O, and protocol stdout reserves space for a final response. Controlled failure responses use `completed=false` and `likely_incorrect=true`. The reusable runner propagates cancellation; the one-episode CLI applies its own bounded controlled-final policy.
+
+For suitable private-context or action-only objectives, one public onboarding action discovers relevant schemas, authenticates task-relevant apps through permitted Supervisor APIs, and prefetches relationship contacts when needed. Supported public answer lookups skip onboarding. Raw requester/HTTP and obvious credential-printing actions are rejected. A model success claim is held as a deferred final: automatic completion emits the appropriate direct-answer or no-answer Supervisor call, and the saved final is released only after matching public success is observed for that call. This protects the completion channel but does not by itself prove task correctness.
 
 ## Interaction contract
 
@@ -104,8 +110,8 @@ The standard tests use Pydantic AI test models, scripted executors, in-memory st
 - `model.py`: bounded ReAct prompts and Pydantic AI generation.
 - `engine.py`: reactive decisions, schema checks, and controlled stops.
 - `runner.py`: asynchronous episode loop and absolute budgets.
-- `protocol.py`: strict JSON Lines transport and caller-controlled executor.
+- `protocol.py`: strict JSON Lines transport, caller-controlled executor, and injected public AppWorld policies.
 - `observability.py`: redacted structured events with explicit truncation and byte limits.
 - `__main__.py`: one-episode process assembly.
 
-Project requirements and increment acceptance checks are in `.internal/constitution-spec.md` and `.internal/specs/01-baseline-agent-general-spec.md`.
+Project requirements are in `.internal/constitution-spec.md`. Increment acceptance checks are in `.internal/specs/01-baseline-agent-general-spec.md` and `.internal/specs/02-verified-react-accuracy-general-spec.md`.

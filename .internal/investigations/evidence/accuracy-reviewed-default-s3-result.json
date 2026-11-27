@@ -1,0 +1,35 @@
+{
+  "run_id": "20261126T125359-210611Z-db942fa801d4",
+  "run_directory": "/tmp/opencode/appworld-validation-agent-artifacts/20261126T125359-210611Z-db942fa801d4",
+  "validation_scope": "partial",
+  "run_status": "completed",
+  "solution_commit": "c4a8a5c9100456169649c5fd712d9cbb134b257a",
+  "solution_overrides": "--log-level ERROR",
+  "policy_overrides": [],
+  "population": {"scenarios": ["e7a10f8", "31dc501"], "variants": 6, "repeats": 2, "episodes": 12},
+  "criteria": {
+    "AC1": {"status": "valid", "success_rate": 0.4166666666666667},
+    "AC2": {"status": "accepted", "precision": 1.0, "recall": 0.7142857142857143},
+    "AC3": {"status": "valid", "repeat_range": 0.16666666666666669, "acceptance_status": "rejected"},
+    "AC7": {"status": "accepted", "timely_response_rate": 1.0}
+  },
+  "episodes": {
+    "successes": 5,
+    "successes_by_repeat": {"1": 2, "2": 3},
+    "successful_tasks": ["e7a10f8_2", "31dc501_1", "31dc501_2", "31dc501_3"],
+    "infrastructure_failures": 0,
+    "connection_failures": 0,
+    "mean_seconds": 96.0127
+  },
+  "successful_public_traces": [
+    "Four alarm episodes submitted printed no-answer completion after verified exact updates.",
+    "The shortest-playlist question summed six public show_song durations to 1455 seconds, rounded to 24, and submitted complete_task(answer=24)."
+  ],
+  "remaining_limitations": [
+    "AC3 repeat range remained above acceptance.",
+    "Other playlist and alarm claims remained unsuccessful, including unsupported temporal/API assertions.",
+    "Five successes on this frozen diagnostic population do not imply authoritative overall acceptance."
+  ],
+  "private_evaluator_reports_inspected": false,
+  "decision": "Corrected-runtime AC4 is satisfied with genuine answer and action successes. The subsequent redaction commit changes logging only and passed the final independent review/CI. Proceed to one full validation on the latest reviewed revision."
+}

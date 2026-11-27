@@ -50,16 +50,56 @@ class TaskRunner:
         self.last_state = state
         self.logger.emit("task_started", task=task.model_dump(mode="json"))
         try:
+            finalization_announced = False
+            force_finalization = False
             while True:
+                deferred = self.engine.release_deferred_final(state)
+                if deferred is not None:
+                    self.logger.emit(
+                        "task_finished",
+                        final_response=deferred.model_dump(mode="json"),
+                        action_attempts=state.action_attempts,
+                    )
+                    return deferred
                 remaining = deadline.remaining()
                 usable = remaining - self.config.final_response_reserve_seconds
                 if usable <= 0:
                     return await self._finish("Final-response reserve reached")
-                if state.action_attempts >= self.config.action_budget:
-                    return await self._finish("Solution action budget exhausted")
-                decision = await asyncio.wait_for(
-                    self.engine.next_decision(state, usable), timeout=usable
+                allow_actions = (
+                    not force_finalization
+                    and state.action_attempts < self.config.action_budget
+                    and remaining
+                    > self.config.final_response_reserve_seconds
+                    + self.config.decision_reserve_seconds
                 )
+                if not allow_actions and not finalization_announced:
+                    state.validation_feedback.append(
+                        "Finalization is now required. Stop discovery and further ordinary actions. "
+                        "Use existing public evidence to return FinalDecision: completed=true only if "
+                        "the objective is verifiably complete, otherwise completed=false with "
+                        "likely_incorrect=true. Required completion tooling will handle a valid success claim."
+                    )
+                    finalization_announced = True
+                ordinary_decision_time = (
+                    remaining
+                    - self.config.final_response_reserve_seconds
+                    - self.config.decision_reserve_seconds
+                )
+                decision_timeout = (
+                    min(usable, ordinary_decision_time) if allow_actions else usable
+                )
+                try:
+                    decision = await asyncio.wait_for(
+                        self.engine.next_decision(
+                            state, decision_timeout, allow_actions=allow_actions
+                        ),
+                        timeout=decision_timeout,
+                    )
+                except TimeoutError:
+                    if allow_actions and self.config.decision_reserve_seconds > 0:
+                        force_finalization = True
+                        continue
+                    raise
                 if isinstance(decision, FinalDecision):
                     self.logger.emit(
                         "task_finished",
@@ -68,10 +108,27 @@ class TaskRunner:
                     )
                     return decision
                 call_id = state.next_call_id
-                started = self.clock()
-                action_time = deadline.remaining() - self.config.final_response_reserve_seconds
+                is_automatic_completion = state.automatic_completion_call_id == call_id
+                remaining_before_action = deadline.remaining()
+                ordinary_action_time = (
+                    remaining_before_action
+                    - self.config.final_response_reserve_seconds
+                    - self.config.decision_reserve_seconds
+                )
+                if not is_automatic_completion and (
+                    state.action_attempts >= self.config.action_budget
+                    or ordinary_action_time <= 0
+                ):
+                    force_finalization = True
+                    continue
+                action_time = (
+                    remaining_before_action - self.config.final_response_reserve_seconds
+                    if is_automatic_completion
+                    else ordinary_action_time
+                )
                 if action_time <= 0:
                     return await self._finish("Final-response reserve reached before action execution")
+                started = self.clock()
                 try:
                     results = await asyncio.wait_for(
                         self.executor.execute(
