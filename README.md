@@ -1,6 +1,6 @@
 # Reliable Agent AppWorld
 
-A small reactive agent for AppWorld and other caller-controlled tool environments. It uses Pydantic AI structured decisions, requests one code action at a time, learns from public observations, and returns an explicit completion declaration with confidence and `likely_incorrect` self-assessment.
+A small reactive agent for AppWorld and other caller-controlled tool environments. It uses action-first fenced-code decisions for `execute_code` tasks and Pydantic AI structured decisions for other tools. It requests one action at a time, learns from public observations, and returns an explicit completion declaration with confidence and `likely_incorrect` self-assessment.
 
 The reusable engine and runner do not import AppWorld or the validation service. The JSON Lines integration supplies protocol translation plus injected public onboarding/completion policies; the decision engine depends only on generic callbacks and typed state.
 
@@ -33,12 +33,12 @@ Important defaults:
 
 | Setting | Default |
 |---------|---------|
-| Output mode | `auto`: structured tool output, then JSON text after provider rejection |
+| Output mode | `auto`: ACTION/FINAL fenced code for `execute_code`; structured output for other tools |
 | Sampling | Temperature `0.6`, top-p `0.95`, top-k `20`, min-p `0` |
 | Penalties | Presence `0`, repetition `1.0` |
 | Maximum generated tokens | `1024` |
 | Model request cap / identical outer retries | `60` seconds / `0` |
-| Internal episode budget | `180` seconds |
+| Internal episode budget | `240` seconds |
 | Action budget | `30` single-action calls |
 | Decision reserve | `35` seconds for final-only decisions |
 | Final-response reserve | `15` seconds |
@@ -49,6 +49,8 @@ Important defaults:
 | Maximum log bytes | `750,000` |
 | Process-wide stderr proxy | `900,000` bytes |
 | Cumulative protocol stdout | `1,000,000` bytes with reserved final space |
+
+For `execute_code`, each `ACTION` response contains one complete fenced Python block. A trailing `FINAL` is validated but not retained; the agent requests a new final after the action's public observation. A `FINAL` response contains strict completion, answer, confidence, `likely_incorrect`, and reason fields; numeric protocol answers are converted to strings. Invalid responses receive bounded repair before a controlled failure. Explicit `tool`, `text`, and `code` modes remain available for diagnosis.
 
 No model seed is configured. Model generation, repairs, action execution, and final delivery share an absolute episode deadline; transient identical outer model retries are disabled by default. Real standard-input/output descriptors use nonblocking I/O, and protocol stdout reserves space for a final response. Controlled failure responses use `completed=false` and `likely_incorrect=true`. The reusable runner propagates cancellation; the one-episode CLI applies its own bounded controlled-final policy.
 
@@ -107,11 +109,11 @@ The standard tests use Pydantic AI test models, scripted executors, in-memory st
 
 - `contracts.py`: strict public and internal Pydantic contracts.
 - `config.py`: typed CLI/environment configuration.
-- `model.py`: bounded ReAct prompts and Pydantic AI generation.
+- `model.py`: bounded ReAct prompts, Pydantic AI generation, and ACTION/FINAL output routing/parsing.
 - `engine.py`: reactive decisions, schema checks, and controlled stops.
 - `runner.py`: asynchronous episode loop and absolute budgets.
 - `protocol.py`: strict JSON Lines transport, caller-controlled executor, and injected public AppWorld policies.
 - `observability.py`: redacted structured events with explicit truncation and byte limits.
 - `__main__.py`: one-episode process assembly.
 
-Project requirements are in `.internal/constitution-spec.md`. Increment acceptance checks are in `.internal/specs/01-baseline-agent-general-spec.md` and `.internal/specs/02-verified-react-accuracy-general-spec.md`.
+Project requirements are in `.internal/constitution-spec.md`. Increment acceptance checks are in `.internal/specs/01-baseline-agent-general-spec.md`, `.internal/specs/02-verified-react-accuracy-general-spec.md`, and `.internal/specs/06-fenced-react-accuracy-general-spec.md`.

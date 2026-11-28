@@ -264,7 +264,7 @@ def test_documented_model_and_deadline_defaults():
         "repetition_penalty": 1.0,
         "max_output_tokens": 1024,
         "model_retries": 0,
-        "episode_timeout_seconds": 180.0,
+        "episode_timeout_seconds": 240.0,
         "action_budget": 30,
         "model_timeout_seconds": 60.0,
         "final_response_reserve_seconds": 15.0,
@@ -321,6 +321,11 @@ def test_cli_overrides_environment_and_preserves_unspecified_environment_values(
     assert config.log_level == "DEBUG"
     assert config.output_mode == "text"
     assert config.top_p == 0.8
+
+
+def test_code_output_mode_is_available_without_changing_the_default():
+    assert load_config([]).output_mode == "auto"
+    assert load_config(["--output-mode", "code"]).output_mode == "code"
 
 
 @pytest.mark.parametrize(

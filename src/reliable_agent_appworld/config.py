@@ -25,7 +25,7 @@ FLOAT_FIELDS = {
 
 class AgentConfig(ContractModel):
     model: str = Field(default="openai:qwen/qwen3.5-9b", min_length=1)
-    output_mode: Literal["auto", "tool", "text"] = "auto"
+    output_mode: Literal["auto", "tool", "text", "code"] = "auto"
     thinking: bool = True
     bootstrap_discovery: bool = True
     bootstrap_authentication: bool = True
@@ -41,7 +41,7 @@ class AgentConfig(ContractModel):
     model_retries: int = Field(default=0, ge=0, le=10)
     output_retries: int = Field(default=2, ge=0, le=10)
 
-    episode_timeout_seconds: float = Field(default=180, gt=0, allow_inf_nan=False)
+    episode_timeout_seconds: float = Field(default=240, gt=0, allow_inf_nan=False)
     action_budget: int = Field(default=30, ge=1)
     model_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False)
     final_response_reserve_seconds: float = Field(default=15, ge=0, allow_inf_nan=False)
@@ -92,7 +92,7 @@ def load_config(argv: Sequence[str] | None = None) -> AgentConfig:
     }
     parser = argparse.ArgumentParser(prog="reliable-agent-appworld")
     parser.add_argument("--model", default=argparse.SUPPRESS)
-    parser.add_argument("--output-mode", choices=("auto", "tool", "text"), default=argparse.SUPPRESS)
+    parser.add_argument("--output-mode", choices=("auto", "tool", "text", "code"), default=argparse.SUPPRESS)
     parser.add_argument(
         "--thinking", action=argparse.BooleanOptionalAction, default=argparse.SUPPRESS
     )

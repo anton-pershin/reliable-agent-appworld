@@ -281,6 +281,43 @@ def test_relevant_app_alias_filter_avoids_unrelated_logins():
     assert_no_private_output(output)
 
 
+def test_objective_aliases_cover_apps_missing_from_search_results():
+    apis = FakePublicAPIs(docs_app_names=("spotify",))
+
+    namespace, output = execute_onboarding(
+        "Read my SimpleNote and send the payment with Venmo.", apis
+    )
+
+    assert [call["app_name"] for call in apis.login_calls] == ["simple_note", "venmo"]
+    assert namespace["access_tokens"] == {
+        "simple_note": token_for("simple_note"),
+        "venmo": token_for("venmo"),
+    }
+    assert_no_private_output(output)
+
+
+def test_domain_aliases_cover_implicit_apps_without_search_support():
+    cases = [
+        ("Create a playlist from my SimpleNote songs.", {"simple_note", "spotify"}),
+        ("Set my wake-up alarm.", {"phone"}),
+        ("Reorganize files under ~/documents.", {"file_system"}),
+        ("Send the owed money and reply by phone text.", {"phone", "venmo"}),
+        ("Read my messages.", {"phone"}),
+        ("Organize my music collection.", {"spotify"}),
+        ("Reorganize files under /home/user/documents.", {"file_system"}),
+        ("Read documents/personal/notes.md.", {"file_system"}),
+        ("Send an email message with Gmail.", {"gmail"}),
+        ("Review https://example.com/report today.", set()),
+        ("Summarize the report from 12/31/2025.", set()),
+    ]
+    for objective, expected_apps in cases:
+        apis = FakePublicAPIs(docs_app_names=())
+        namespace, output = execute_onboarding(objective, apis)
+        assert {call["app_name"] for call in apis.login_calls} == expected_apps
+        assert set(namespace["access_tokens"]) == expected_apps
+        assert_no_private_output(output)
+
+
 def test_phone_uses_phone_number_other_apps_use_email_and_tokens_stay_per_app():
     apis = FakePublicAPIs(docs_app_names=("gmail", "phone", "venmo"))
 

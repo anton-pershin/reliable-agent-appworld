@@ -1,0 +1,721 @@
+{
+  "observed_on": "2026-11-27",
+  "issue": 6,
+  "validation_scope": "partial",
+  "evidence_boundary": {
+    "private_evaluator_reports_inspected": false,
+    "benchmark_or_record_files_inspected": false,
+    "ground_truth_inspected": false,
+    "new_full_validation_runs": 0,
+    "model_seed_configured": false,
+    "model": "qwen/qwen3.5-9b",
+    "model_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a",
+    "vllm": "0.34.0",
+    "serving_context": 12288,
+    "continuous_batching": true
+  },
+  "prompt_measurement": {
+    "source_run_id": "20261126T131246-900491Z-c65d4f90b51e",
+    "reconstructed_public_decision_prompts": 1080,
+    "mean_prompt_characters": 18946.5,
+    "median_prompt_characters": 18796,
+    "maximum_prompt_characters": 26596,
+    "mean_task_payload_characters": 2309.1,
+    "mean_history_characters": 16371.0,
+    "interpretation": "History, not static task metadata, dominates the retained prompt. Character counts are not token counts and do not establish a latency cause."
+  },
+  "train_mechanism_population": {
+    "split": "train",
+    "task_ids": [
+      "771d8fc_1",
+      "07b42fd_1",
+      "287e338_1",
+      "e85d92a_1",
+      "22cc237_1",
+      "3c13f5a_1"
+    ],
+    "repeats": 1,
+    "episodes": 6,
+    "episode_concurrency_per_validation": 2,
+    "acceptance_criteria": [
+      "AC1",
+      "AC2",
+      "AC7"
+    ],
+    "interpretation": "This is a small mechanism screen, not an unbiased overall-success estimate."
+  },
+  "completed_runs": [
+    {
+      "run_id": "20261127T180433-060114Z-f747528e061a",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T180433-060114Z-f747528e061a",
+      "candidate": "unchanged runtime with detailed bounded logs",
+      "solution_commit": "d885b4a",
+      "runtime_commit_equivalent_to": "21dc8d4014b0cfe68ab65ec0cd30876bb1bb2bc9",
+      "solution_overrides": "--log-level INFO",
+      "successes": 2,
+      "success_rate": 0.3333333333333333,
+      "successful_tasks": [
+        "07b42fd_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.75
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "public_failures": {
+        "22cc237_1": "structured-output retry exhaustion after two actions",
+        "771d8fc_1": "structured-output retry exhaustion after two actions",
+        "287e338_1": "incorrect public completion",
+        "3c13f5a_1": "model-declared failure after six actions",
+        "22cc237_1_and_771d8fc_1": "no model-request timeout"
+      },
+      "decision": "Use structured-output failure as the next isolated mechanism. Do not infer a general timeout reduction from this small sample."
+    },
+    {
+      "run_id": "20261127T181121-937905Z-022d5578e57b",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T181121-937905Z-022d5578e57b",
+      "candidate": "explicit public-objective app coverage plus Name/rating answer classification",
+      "solution_commit": "40f8cf0fb4019284d245b10cbd0abc1c3690c025",
+      "solution_overrides": "--log-level ERROR",
+      "successes": 3,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "287e338_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "public_failures": {
+        "07b42fd_1": "incorrect public completion",
+        "22cc237_1": "structured-output retry exhaustion after two actions",
+        "3c13f5a_1": "model-request timeout after onboarding only"
+      },
+      "decision": "Retain as provisional mechanism evidence. The Name task succeeded, but neither multi-app task succeeded. Small-sample outcome differences are not proof of general improvement.",
+      "operational_note": "The completed run and result are valid. A wrapper edit made during execution caused a post-run shell parse error; run.json status is completed and cleanup_error is null."
+    },
+    {
+      "run_id": "20261127T181458-801952Z-29a92a05ae41",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T181458-801952Z-29a92a05ae41",
+      "candidate": "text-only JSON decisions on the unchanged runtime",
+      "solution_commit": "d885b4a",
+      "solution_overrides": "--log-level ERROR --output-mode text",
+      "successes": 1,
+      "success_rate": 0.16666666666666666,
+      "successful_tasks": [
+        "07b42fd_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.8
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "public_failures": {
+        "3c13f5a_1": "text output did not satisfy the decision schema",
+        "771d8fc_1": "text output did not satisfy the decision schema after onboarding only",
+        "e85d92a_1": "text output did not satisfy the decision schema before an action",
+        "22cc237_1": "deadline timeout",
+        "287e338_1": "incorrect public completion"
+      },
+      "decision": "Reject text-only output as the default. Keep structured output primary; a selective fallback still requires a separate result."
+    },
+    {
+      "run_id": "20261127T182252-203181Z-8018cd7131ac",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T182252-203181Z-8018cd7131ac",
+      "candidate": "expanded policy plus selective structured-to-text fallback after UnexpectedModelBehavior",
+      "solution_commit": "9b7f2ab",
+      "solution_overrides": "--log-level INFO",
+      "successes": 2,
+      "success_rate": 0.3333333333333333,
+      "successful_tasks": [
+        "07b42fd_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.75
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "public_failures": {
+        "22cc237_1": "model-request timeout after two actions",
+        "771d8fc_1": "model-request timeout after two actions",
+        "287e338_1": "incorrect public completion using the first recommendation",
+        "3c13f5a_1": "model-declared failure after four actions"
+      },
+      "text_fallback_events": 0,
+      "decision": "Fallback accuracy effect is inconclusive because the fallback path was not exercised. Do not claim improvement from the 2/6 result. The bounded-time candidate remains active."
+    },
+    {
+      "run_id": "20261127T182541-601355Z-c1df5784e398",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T182541-601355Z-c1df5784e398",
+      "candidate": "expanded policy, selective fallback, 240-second episode and 90-second model cap",
+      "solution_commit": "9b7f2ab",
+      "solution_overrides": "--log-level ERROR --episode-timeout-seconds 240 --model-timeout-seconds 90",
+      "successes": 3,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "07b42fd_1",
+        "287e338_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "model-declared failure after four actions and 224.41 seconds",
+        "3c13f5a_1": "text output schema failure after 177.67 seconds; the fallback path was exercised",
+        "771d8fc_1": "incorrect public completion despite a claimed delete response"
+      },
+      "decision": "Do not promote the longer budgets or fallback as accuracy improvements. No multi-app task succeeded, the longer run allowed more work without conversion, and the fallback ended in a text-schema failure."
+    },
+    {
+      "run_id": "20261127T183809-611269Z-bfaf481d8c1c",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T183809-611269Z-bfaf481d8c1c",
+      "candidate": "policy-only explicit/domain aliases and answer classification",
+      "solution_commit": "1b29bbf",
+      "solution_overrides": "--log-level INFO",
+      "population": "frozen dev confirmation",
+      "successes": 2,
+      "episodes": 24,
+      "success_rate": 0.08333333333333333,
+      "successes_by_scenario": {
+        "fac291d": 2,
+        "3ab5b8b": 0,
+        "383cbac": 0,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 6,
+      "stopped_episodes": 16,
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.7727272727272727
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Reject policy-only coverage as a sufficient accuracy design. It scored below the historical 4/24 subset and produced no multi-app success. Use the result as a negative baseline for the payment-alias and source/aggregation candidates.",
+      "failure_causes": {
+        "model_request_timeouts": 7,
+        "deadline_timeouts": 3,
+        "output_token_limit": 1,
+        "model_declared_failures": 5,
+        "incorrect_public_completions": 6
+      }
+    },
+    {
+      "run_id": "20261127T184227-620076Z-ddc36ab075c5",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T184227-620076Z-ddc36ab075c5",
+      "candidate": "policy plus generic money/payment aliases",
+      "solution_commit": "81cd1df",
+      "solution_overrides": "--log-level INFO",
+      "population": "frozen dev confirmation",
+      "successes": 4,
+      "episodes": 24,
+      "success_rate": 0.16666666666666666,
+      "successes_by_scenario": {
+        "fac291d": 2,
+        "3ab5b8b": 0,
+        "383cbac": 2,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 7,
+      "stopped_episodes": 13,
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.65
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Do not attribute the two additional 383cbac successes to payment aliases because that scenario already named Venmo. The target 530b157 scenario remained 0/6. The candidate matches the historical 4/24 subset but does not meet the 0.3 investigation gate. Source/aggregation and model-cap candidates remain necessary.",
+      "target_scenario_530b157": {
+        "episodes_with_phone_and_venmo_authentication": 6,
+        "successes": 0,
+        "public_failure_causes": {
+          "model_request_timeouts": 3,
+          "deadline_timeout": 1,
+          "structured_output_retry_exhaustion": 1,
+          "model_declared_failure": 1
+        },
+        "interpretation": "The generic aliases corrected reported authentication coverage in all six episodes, but model/output failures still prevented success."
+      }
+    },
+    {
+      "run_id": "20261127T191413-721194Z-e8de5959bf91",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T191413-721194Z-e8de5959bf91",
+      "candidate": "generic payment aliases plus concise source-collection and aggregation/ranking guidance",
+      "solution_commit": "42c39d3",
+      "solution_overrides": "--log-level INFO",
+      "population": "frozen train mechanism screen",
+      "successes": 3,
+      "episodes": 6,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "287e338_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "07b42fd_1": "model-request timeout after onboarding only",
+        "22cc237_1": "model-request timeout after four actions",
+        "3c13f5a_1": "deadline timeout after three actions"
+      },
+      "decision": "The candidate matched the best train result and again computed the Name answer from recommendation counts rather than response order. This is mechanism support, not proof of general improvement. The repeated dev run with a 90-second model cap must decide promotion."
+    },
+    {
+      "run_id": "20261127T191809-254542Z-b6e3a6e82e50",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T191809-254542Z-b6e3a6e82e50",
+      "candidate": "source/aggregation guidance, generic aliases, and a 90-second model cap within 180 seconds",
+      "solution_commit": "42c39d3",
+      "solution_overrides": "--log-level INFO --model-timeout-seconds 90",
+      "population": "frozen dev confirmation",
+      "successes": 4,
+      "episodes": 24,
+      "success_rate": 0.16666666666666666,
+      "successes_by_scenario": {
+        "fac291d": 3,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 11,
+      "stopped_episodes": 9,
+      "AC2": {
+        "status": "valid",
+        "precision": 1.0,
+        "recall": 0.45
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Do not promote. The candidate did not meet 0.3, did not solve the target multi-app scenario, and regressed AC2 recall from accepted to valid. The prompt rules did not convert the source-filtering scenario. Test the previously untested fenced-code action contract rather than continuing prompt-only tuning."
+    },
+    {
+      "run_id": "20261127T195631-387983Z-c38c651458bf",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T195631-387983Z-c38c651458bf",
+      "candidate": "initial ACTION fenced-code or FINAL JSON output mode",
+      "solution_commit": "f4524f2",
+      "solution_overrides": "--log-level INFO --output-mode code",
+      "population": "frozen train mechanism screen",
+      "successes": 3,
+      "episodes": 6,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "07b42fd_1",
+        "287e338_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "deadline timeout after nine actions and ten completed model responses",
+        "3c13f5a_1": "deadline timeout after seven actions and nine completed model responses",
+        "771d8fc_1": "response-contract failure after the model repeatedly emitted ACTION followed by FINAL"
+      },
+      "interpretation": "Direct code shifted both multi-app failures from early model-output failures to substantially more public work. It did not increase aggregate train success, so this is a decision-yield improvement rather than an accuracy pass.",
+      "decision": "Allow action-first ACTION+FINAL responses so the first action executes before its final is requested. Test the parser fix on the same train screen before dev."
+    },
+    {
+      "run_id": "20261127T200943-069581Z-637b746671d1",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T200943-069581Z-637b746671d1",
+      "candidate": "fenced code with action-first ACTION+FINAL parsing and numeric protocol-answer normalization",
+      "solution_commit": "a84f41b",
+      "solution_overrides": "--log-level INFO --output-mode code",
+      "population": "frozen train mechanism screen",
+      "successes": 3,
+      "episodes": 6,
+      "success_rate": 0.5,
+      "successful_tasks": [
+        "07b42fd_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "deadline timeout after eight actions",
+        "3c13f5a_1": "deadline timeout after seven actions",
+        "287e338_1": "response-contract failure after valid FINAL marker lines included trailing prose"
+      },
+      "decision": "The action-first fix recovered the phone task. The aggregate remained 3/6 because the answer task exposed annotated FINAL marker lines. Commit c22a295 accepts those marker lines; proceed directly to repeated dev rather than another train-only cycle."
+    },
+    {
+      "run_id": "20261127T201935-150435Z-1e01c815d986",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T201935-150435Z-1e01c815d986",
+      "candidate": "action-first fenced code with annotated marker support, generic aliases, and source/aggregation guidance",
+      "solution_commit": "c22a295",
+      "solution_overrides": "--log-level INFO --output-mode code",
+      "population": "frozen dev confirmation",
+      "successes": 6,
+      "episodes": 24,
+      "success_rate": 0.25,
+      "successes_by_scenario": {
+        "fac291d": 6,
+        "3ab5b8b": 0,
+        "383cbac": 0,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 5,
+      "stopped_episodes": 13,
+      "failure_causes": {
+        "deadline_timeouts": 10,
+        "output_token_limit": 2,
+        "model_declared_failures": 1,
+        "incorrect_public_completions": 5
+      },
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.7222222222222222
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "This is the first promising accuracy candidate: fac291d improved to 6/6 and AC2/AC3/AC7 remained accepted. It is still below 0.3 and has no multi-app success. Ten deadline timeouts, including five in 530b157, justify one 240-second episode test with model cap and output tokens unchanged."
+    },
+    {
+      "run_id": "20261127T205551-981539Z-a1d1d241bd55",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T205551-981539Z-a1d1d241bd55",
+      "candidate": "fenced code with a 240-second episode and unchanged 60-second model cap/1024 tokens",
+      "solution_commit": "c22a295",
+      "solution_overrides": "--log-level INFO --output-mode code --episode-timeout-seconds 240",
+      "population": "frozen train mechanism screen",
+      "successes": 4,
+      "episodes": 6,
+      "success_rate": 0.6666666666666666,
+      "successful_tasks": [
+        "07b42fd_1",
+        "287e338_1",
+        "771d8fc_1",
+        "e85d92a_1"
+      ],
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "public_failures": {
+        "22cc237_1": "deadline timeout after eleven actions and 227.08 seconds",
+        "3c13f5a_1": "no valid final-only decision after five actions and 169.03 seconds"
+      },
+      "decision": "Best train result, but both multi-app tasks remain unsuccessful. The repeated dev run must meet the gate before the design is selected."
+    },
+    {
+      "run_id": "20261127T205552-018995Z-1c6a719a5f4b",
+      "run_directory": "artifacts/issue6-investigation/runs/20261127T205552-018995Z-1c6a719a5f4b",
+      "candidate": "fenced code with generic policy/source guidance and a 240-second episode",
+      "solution_commit": "c22a295",
+      "solution_overrides": "--log-level INFO --output-mode code --episode-timeout-seconds 240",
+      "population": "frozen dev confirmation",
+      "successes": 8,
+      "episodes": 24,
+      "success_rate": 0.3333333333333333,
+      "successes_by_scenario": {
+        "fac291d": 6,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 1
+      },
+      "incorrect_public_completions": 8,
+      "stopped_episodes": 8,
+      "failure_causes": {
+        "deadline_timeouts": 5,
+        "model_declared_failures": 2,
+        "output_token_limit": 1,
+        "incorrect_public_completions": 8
+      },
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.5
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "Select for a future implementation spec. The run exceeds 0.3, includes a multi-app success, preserves all three other criteria at accepted status, and has no infrastructure failure. This remains partial diagnostic evidence, not authoritative project acceptance."
+    },
+    {
+      "run_id": "20261128T035626-369210Z-851e09cebfdd",
+      "run_directory": "artifacts/issue6-investigation/runs/20261128T035626-369210Z-851e09cebfdd",
+      "candidate": "first exact-default implementation before independent-review fixes",
+      "solution_commit": "04ee27dbbf696177cd9a12ec3ffddd19bb318057",
+      "solution_overrides": "--log-level ERROR",
+      "population": "frozen dev confirmation",
+      "successes": 6,
+      "episodes": 24,
+      "success_rate": 0.25,
+      "successes_by_scenario": {
+        "fac291d": 5,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 6,
+      "stopped_episodes": 12,
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "This exact-default revision did not meet the >=0.3 or multi-app gate. Independent review also returned four no-pass items. Do not start full validation on this revision; fix review findings and rerun the frozen dev population."
+    },
+    {
+      "run_id": "20261128T044809-796139Z-3b8db8e09ffa",
+      "run_directory": "artifacts/issue6-investigation/runs/20261128T044809-796139Z-3b8db8e09ffa",
+      "candidate": "first parser/policy review-fix revision",
+      "solution_commit": "dbbeb5d0954d88e39423e986eec3f9282bd804e1",
+      "solution_overrides": "--log-level ERROR",
+      "population": "frozen dev confirmation",
+      "successes": 7,
+      "episodes": 24,
+      "success_rate": 0.2916666666666667,
+      "successes_by_scenario": {
+        "fac291d": 6,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 8,
+      "stopped_episodes": 9,
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.5294117647058824
+      },
+      "AC3": {
+        "status": "valid",
+        "repeat_range": 0.08333333333333331
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "The revision remained below 0.3 and had no multi-app success. Re-review closed the parser findings but found false app selection for Gmail/URLs/dates and a short rating-action defect. Do not start full validation; fix and rerun."
+    }
+  ],
+  "static_candidate_checks": {
+    "answer_classification_changed_variants": 6,
+    "answer_classification_changed_scenarios": [
+      "287e338",
+      "692c77d"
+    ],
+    "fake_public_api_objectives_tested": 315,
+    "expanded_alias_candidate_missing_implied_apps": 0,
+    "all_local_tests_passed": true,
+    "pydantic_ai_versions_passed": [
+      "2.66.0",
+      "2.74.0"
+    ],
+    "ruff_passed": true,
+    "package_build_passed": true,
+    "installed_wheel_default_episodes_passed": 2,
+    "interpretation": "Static checks establish coverage and contract behavior only, not model-backed task success."
+  },
+  "rejected_or_deferred": [
+    "Text-only output is rejected by run 20261127T181458-801952Z-29a92a05ae41.",
+    "Static task-payload compaction is not a leading candidate because it accounts for only about 2.3k characters of an 18.9k-character mean public prompt.",
+    "The pinned Qwen chat template supports enable_thinking but has no thinking_budget control.",
+    "No full validation is needed for candidate selection."
+  ],
+  "operational_notes": [
+    "Two submissions with short commit hashes were rejected before run allocation; they are not validation runs.",
+    "No private evaluator data was used to design candidates."
+  ],
+  "dev_confirmation_population": {
+    "split": "dev",
+    "scenarios": [
+      "fac291d",
+      "3ab5b8b",
+      "383cbac",
+      "530b157"
+    ],
+    "variants_per_scenario": 3,
+    "repeats": 2,
+    "episodes": 24,
+    "acceptance_criteria": [
+      "AC1",
+      "AC2",
+      "AC3",
+      "AC7"
+    ],
+    "frozen_before_candidate_results": true,
+    "historical_full_run": {
+      "run_id": "20261126T131246-900491Z-c65d4f90b51e",
+      "successes": 4,
+      "success_rate": 0.16666666666666666,
+      "successes_by_scenario": {
+        "fac291d": 3,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 0
+      }
+    },
+    "mechanism_review": "The first policy candidate does not address all objectives in this population. In particular, 530b157 uses money/payment semantics without naming Venmo, motivating a generic payment-alias candidate."
+  },
+  "updated_on": "2026-11-28",
+  "selected_candidate": {
+    "ready_for_spec": true,
+    "experimental_solution_commit": "c22a295cf634bdb81aad10cc8906ce69968b5a43",
+    "design": [
+      "For execute_code tasks, use ACTION with one fenced Python block and FINAL with one strict self-assessment JSON object.",
+      "Execute an ACTION before a trailing FINAL; accept annotated marker lines; normalize numeric protocol answers to strings.",
+      "Keep generic app aliases, Name/rating answer classification, and concise source/aggregation guidance.",
+      "Use a 240-second episode with the existing 60-second model cap, 1024 output tokens, thinking, sampling, and no model seed.",
+      "Preserve structured decisions for tasks without execute_code and preserve all existing validation, completion, privacy, and deadline checks."
+    ],
+    "required_final_work": [
+      "Make the selected behavior the installed default for execute_code tasks without requiring policy overrides.",
+      "Add installed default-process tests for fenced action/final behavior and rerun the complete local matrix.",
+      "Rerun the frozen dev population on the exact reviewed default revision with only logging configuration.",
+      "Complete independent engineering review and then one authoritative full validation; issue 6 requires VM1 >=0.3 and every criterion at least valid."
+    ],
+    "train_evidence": {
+      "run_id": "20261127T205551-981539Z-a1d1d241bd55",
+      "successes": 4,
+      "episodes": 6
+    },
+    "dev_evidence": {
+      "run_id": "20261127T205552-018995Z-1c6a719a5f4b",
+      "successes": 8,
+      "episodes": 24,
+      "rate": 0.3333333333333333
+    },
+    "remaining_limits": [
+      "The 0.3 issue target is not yet demonstrated on the authoritative full population.",
+      "The source-filtering dev scenario remained 0/6 with six incorrect completions.",
+      "The multi-app dev scenario succeeded in only one of six episodes.",
+      "AC2 recall met the accepted threshold exactly at 0.5 and has no margin on this small population.",
+      "A 240-second default may increase full-validation wall time; no full run was started during investigation."
+    ],
+    "no_full_validation_performed": true
+  },
+  "review_status": {
+    "initial_commit": "04ee27dbbf696177cd9a12ec3ffddd19bb318057",
+    "initial_verdict": "NO-PASS",
+    "no_pass_items": [
+      "outer fenced-response structure",
+      "exact Python source validation",
+      "generic app aliases",
+      "rating-filter direct answers"
+    ],
+    "advisories_addressed": [
+      "action-first lifecycle regression",
+      "README trailing-final wording",
+      "controlled malformed-output exhaustion"
+    ],
+    "review_fix_commit_pending": true,
+    "second_commit": "dbbeb5d0954d88e39423e986eec3f9282bd804e1",
+    "second_verdict": "NO-PASS",
+    "second_closed": [
+      "outer fenced-response structure",
+      "exact Python source validation",
+      "action-first lifecycle",
+      "README wording",
+      "controlled exhaustion"
+    ],
+    "second_remaining": [
+      "Gmail/URI/date false app selection",
+      "short Give-rating action form"
+    ]
+  }
+}

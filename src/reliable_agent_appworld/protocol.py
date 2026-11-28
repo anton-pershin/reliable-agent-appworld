@@ -180,6 +180,21 @@ _PRIVATE_CONTEXT = re.compile(
     r"\b(?:my|mine|me|i|current|previous|next|feed|queue|libraries|library|account|friends?|roommates?|coworkers?|spouse|wife|husband|transactions?|notes?|files?|bills?|tasks?|alarms?|messages?|playlists?)\b",
     re.IGNORECASE,
 )
+_FILE_PATH = re.compile(
+    r"(?<![:\w])(?:~|\.{1,2})?/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+"
+    r"|(?<![:/])\b(?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.-]+\b"
+)
+_URI = re.compile(r"\b[A-Za-z][A-Za-z0-9+.-]*://\S+")
+
+
+def _contains_file_path(value: str) -> bool:
+    for match in _FILE_PATH.finditer(_URI.sub(" ", value)):
+        candidate = match.group(0)
+        if re.fullmatch(r"\d{1,4}(?:/\d{1,2}){2}", candidate):
+            continue
+        if re.search(r"[A-Za-z_~]", candidate):
+            return True
+    return False
 
 
 def appworld_discovery_action(
@@ -193,6 +208,10 @@ def appworld_discovery_action(
     objective = public_input.get("instruction") if isinstance(public_input, dict) else None
     if not isinstance(objective, str) or not objective:
         return None
+    file_path_hint = _contains_file_path(objective)
+    phone_message_hint = bool(re.search(r"\bmessages?\b", objective, re.IGNORECASE)) and not bool(
+        re.search(r"\b(?:gmail|e-?mails?)\b", objective, re.IGNORECASE)
+    )
     if private_only and (
         _PRIVATE_CONTEXT.search(objective) is None and _objective_requests_answer(objective)
     ):
@@ -245,6 +264,8 @@ if relation_context and "phone" in access_tokens:
 ''' if authenticate else ""
     code = f'''# Deterministic public API onboarding; no private data is accessed.
 objective = {json.dumps(objective, ensure_ascii=False)}
+file_path_hint = {repr(file_path_hint)}
+phone_message_hint = {repr(phone_message_hint)}
 print("Objective:", objective)
 
 def compact_doc(doc):
@@ -279,18 +300,25 @@ app_aliases = {{
     "amazon": ("amazon",),
     "file_system": ("file system", "file_system"),
     "gmail": ("gmail",),
-    "phone": ("phone",),
-    "simple_note": ("simple note", "simple_note"),
+    "phone": ("phone", "alarm", "alarms", "text message", "voice message"),
+    "simple_note": ("simple note", "simple_note", "simplenote"),
     "splitwise": ("splitwise",),
-    "spotify": ("spotify",),
+    "spotify": (
+        "spotify", "playlist", "playlists", "song", "songs",
+        "artist", "artists", "album", "albums", "music",
+    ),
     "todoist": ("todoist",),
-    "venmo": ("venmo",),
+    "venmo": ("venmo", "money", "payment", "payments", "pay", "paid"),
 }}
 objective_lower = objective.lower()
 mentioned = [
-    name for name in app_names
+    name for name in app_aliases
     if any(alias in objective_lower for alias in app_aliases.get(name, (name,)))
 ]
+if file_path_hint and "file_system" not in mentioned:
+    mentioned.append("file_system")
+if phone_message_hint and "phone" not in mentioned:
+    mentioned.append("phone")
 if mentioned:
     app_names = mentioned
 relation_context = any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent", "spouse", "wife", "husband"))
@@ -308,21 +336,28 @@ for app_name in app_names[:4]:
     )
 
 
+_RATING_ACTION = re.compile(
+    r"(?:^|[.!?]\s+)give\s+(?:a|an)\s+"
+    r"(?:\d+(?:\.\d+)?[-\s]+star\s+)?rating\s+(?:to|for)\b",
+    re.IGNORECASE,
+)
 _ANSWER_QUESTION = re.compile(
     r"(?:^|[.!?]\s+|,\s*)(?:what|who|whom|whose|which|when|where|why|how|is|are|was|were|do|does|did|can|could|would|should)\b",
     re.IGNORECASE,
 )
 _ANSWER_IMPERATIVE = re.compile(
-    r"(?:^|[.!?]\s+|,\s*)(?:find|show|give|tell|list|provide|calculate|compute|determine|identify|return)\b",
+    r"(?:^|[.!?]\s+|,\s*)(?:find|show|give|tell|list|name|provide|calculate|compute|determine|identify|return)\b",
     re.IGNORECASE,
 )
 _ACTION_IMPERATIVE = re.compile(
-    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment)\b",
+    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment|rate|increase|decrease)\b",
     re.IGNORECASE,
 )
 
 
 def _objective_requests_answer(objective: str) -> bool:
+    if _RATING_ACTION.search(objective):
+        return False
     if objective.rstrip().endswith("?") or _ANSWER_QUESTION.search(objective):
         return True
     answer = _ANSWER_IMPERATIVE.search(objective)
