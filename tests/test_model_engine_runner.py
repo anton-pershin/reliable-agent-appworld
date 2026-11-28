@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 
+import pytest
 from pydantic_ai.exceptions import ModelRequestRejectedError
 from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
@@ -20,6 +21,7 @@ from reliable_agent_appworld.contracts import (
     ToolDescription,
 )
 from reliable_agent_appworld.engine import DecisionEngine
+from reliable_agent_appworld.errors import ModelRequestError
 from reliable_agent_appworld.model import PydanticAIModelClient
 from reliable_agent_appworld.observability import EventLogger
 from reliable_agent_appworld.runner import TaskRunner
@@ -117,7 +119,7 @@ def test_internal_decision_accepts_json_object_strings():
 
 
 async def test_structured_action_and_sampling_without_seed():
-    cfg = config()
+    cfg = config(output_mode="tool")
     event_logger, stream = logger(cfg)
     seen = {}
 
@@ -165,11 +167,11 @@ async def test_thinking_can_be_disabled_and_prompt_reports_remaining_time():
     assert prompt["remaining_episode_seconds"] == 12.3
     assert prompt["task"]["objective"] == "Print 42"
     assert "instruction" not in prompt["task"]["input"]
-    assert prompt["prompt_version"] == "react-v2.4-verified"
+    assert prompt["prompt_version"] == "react-v3.0-fenced"
 
 
 async def test_pydantic_schema_validation_repair_is_retried_and_logged():
-    cfg = config(output_retries=1)
+    cfg = config(output_mode="tool", output_retries=1)
     event_logger, stream = logger(cfg)
     calls = 0
 
@@ -192,6 +194,17 @@ async def test_tool_rejection_falls_back_to_text_json():
     cfg = config()
     event_logger, stream = logger(cfg)
     calls = 0
+    other_task = task().model_copy(
+        update={
+            "tools": [
+                ToolDescription(
+                    name="other_tool",
+                    description="Another supplied tool",
+                    arguments_schema={"type": "object"},
+                )
+            ]
+        }
+    )
 
     def respond(messages, info):
         nonlocal calls
@@ -202,7 +215,7 @@ async def test_tool_rejection_falls_back_to_text_json():
         return ModelResponse(parts=[TextPart(content=json.dumps(final().model_dump()))])
 
     client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
-    result = await client.decide(TaskState(task=task()), 30)
+    result = await client.decide(TaskState(task=other_task), 30)
     assert isinstance(result, FinalDecision)
     assert calls == 2
     assert any(event["event"] == "text_fallback" for event in events(stream))
@@ -240,7 +253,7 @@ async def test_code_output_parses_one_fenced_action_without_json_escaping():
     assert isinstance(result, ActionDecision)
     assert result.action.name == "execute_code"
     assert result.action.arguments == {"code": "print(42)"}
-    assert "Return ACTION" in client.instructions
+    assert "Return ACTION" in client.code_instructions
 
 
 async def test_code_output_parses_final_json_with_default_kind():
@@ -275,6 +288,106 @@ async def test_code_output_repairs_missing_code_block():
 
     assert isinstance(result, ActionDecision)
     assert any(event["event"] == "model_repair" for event in events(stream))
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        "ACTION\n```python\nprint(42)",
+        "ACTION\n```python\nprint(42)\n```\n```python\nprint(43)\n```",
+        "ACTION\n```python\nif True print(42)\n```",
+    ],
+)
+def test_code_parser_rejects_partial_multiple_and_invalid_code(response):
+    cfg = config(output_mode="code")
+    client = PydanticAIModelClient(cfg, EventLogger("parser", cfg))
+
+    with pytest.raises((ValueError, SyntaxError)):
+        client._parse_code_output(TaskState(task=task()), response)
+
+
+def test_code_parser_does_not_discard_an_action_after_a_final():
+    cfg = config(output_mode="code")
+    client = PydanticAIModelClient(cfg, EventLogger("parser", cfg))
+    response = (
+        "FINAL\n"
+        + json.dumps(final().model_dump())
+        + "\nACTION\n```python\nprint(42)\n```"
+    )
+
+    with pytest.raises(ValueError):
+        client._parse_code_output(TaskState(task=task()), response)
+
+
+def test_code_parser_rejects_nonnumeric_confidence():
+    cfg = config(output_mode="code")
+    client = PydanticAIModelClient(cfg, EventLogger("parser", cfg))
+    payload = final().model_dump()
+    payload["confidence"] = "high"
+
+    with pytest.raises(ValueError):
+        client._parse_code_output(TaskState(task=task()), "FINAL\n" + json.dumps(payload))
+
+
+async def test_auto_uses_code_only_when_execute_code_is_supplied():
+    cfg = config(output_mode="auto")
+    event_logger, stream = logger(cfg)
+
+    def respond(messages, info):
+        if info.model_settings.get("tool_choice") == "none":
+            return ModelResponse(parts=[TextPart(content="ACTION\n```python\nprint('auto')\n```")])
+        tool = next(tool for tool in info.output_tools if "ActionDecision" in tool.name)
+        return ModelResponse(
+            parts=[ToolCallPart(tool_name=tool.name, args=action().model_dump())]
+        )
+
+    other_task = task().model_copy(
+        update={
+            "tools": [
+                ToolDescription(
+                    name="other_tool",
+                    description="Another supplied tool",
+                    arguments_schema={"type": "object"},
+                )
+            ]
+        }
+    )
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
+
+    code_result = await client.decide(TaskState(task=task()), 30)
+    other_result = await client.decide(TaskState(task=other_task), 30)
+
+    assert isinstance(code_result, ActionDecision)
+    assert code_result.action.arguments == {"code": "print('auto')"}
+    assert isinstance(other_result, ActionDecision)
+    response_modes = [
+        event.get("output_mode")
+        for event in events(stream)
+        if event["event"] == "model_response"
+    ]
+    assert response_modes == ["code", "tool"]
+
+
+async def test_explicit_code_mode_without_execute_code_is_controlled():
+    cfg = config(output_mode="code")
+    event_logger, _ = logger(cfg)
+    other_task = task().model_copy(
+        update={
+            "tools": [
+                ToolDescription(
+                    name="other_tool",
+                    description="Another supplied tool",
+                    arguments_schema={"type": "object"},
+                )
+            ]
+        }
+    )
+    client = PydanticAIModelClient(
+        cfg, event_logger, FunctionModel(lambda *_: pytest.fail("Unexpected model call"))
+    )
+
+    with pytest.raises(ModelRequestError, match="requires the supplied execute_code"):
+        await client.decide(TaskState(task=other_task), 30)
 
 
 async def test_history_trims_old_observations_then_whole_entries():

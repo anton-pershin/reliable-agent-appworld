@@ -61,15 +61,19 @@ class PydanticAIModelClient:
         os.environ.setdefault("PYDANTIC_AI_NO_BANNER", "1")
         self.model = model or config.model
         self.instructions = files("reliable_agent_appworld").joinpath("prompts/react.txt").read_text()
-        if config.output_mode == "code":
-            self.instructions = self.instructions.replace(
-                "Return ActionDecision for exactly one next action, or FinalDecision when no more action is appropriate.",
-                "Return ACTION followed by one fenced Python code block for the next execute_code action, "
-                "or FINAL followed by one JSON object when no more action is appropriate.",
-            ).replace(
-                "Afterward, return FinalDecision with completed=true and self-assessment.",
-                "Afterward, return FINAL with completed=true and self-assessment.",
-            )
+        self.code_instructions = self.instructions.replace(
+            "Return ActionDecision for exactly one next action, or FinalDecision when no more action is appropriate.",
+            "Return ACTION followed by one fenced Python code block for the next execute_code action, "
+            "or FINAL followed by one JSON object when no more action is appropriate.",
+        ).replace(
+            "Afterward, return FinalDecision with completed=true and self-assessment.",
+            "Afterward, return FINAL with completed=true and self-assessment.",
+        )
+
+    def _use_code_output(self, state: TaskState) -> bool:
+        return self.config.output_mode in {"auto", "code"} and any(
+            tool.name == "execute_code" for tool in state.task.tools
+        )
 
     def _settings(self, *, text: bool = False) -> ModelSettings:
         values: dict[str, Any] = {
@@ -202,10 +206,10 @@ class PydanticAIModelClient:
                 ),
                 "history": self.public_history(state),
                 "validation_feedback": state.validation_feedback[-10:],
-                "prompt_version": "react-v2.4-verified",
+                "prompt_version": "react-v3.0-fenced",
                 "format": (
                     "Return ACTION with one fenced Python code block or FINAL with one JSON object"
-                    if self.config.output_mode == "code"
+                    if self._use_code_output(state)
                     else "Return ActionDecision or FinalDecision only"
                 ),
             },
@@ -245,8 +249,10 @@ class PydanticAIModelClient:
     ) -> Decision:
         if self.config.output_mode == "text":
             return await self._text_output(state, deadline)
-        if self.config.output_mode == "code":
+        if self._use_code_output(state):
             return await self._code_output(state, deadline)
+        if self.config.output_mode == "code":
+            raise ModelRequestError("Code output requires the supplied execute_code tool")
         try:
             return await self._tool_output(state, remaining_seconds)
         except ModelRequestRejectedError as exc:
@@ -344,7 +350,7 @@ class PydanticAIModelClient:
                 agent = Agent(
                     self.model,
                     output_type=str,
-                    instructions=self.instructions,
+                    instructions=self.code_instructions,
                     model_settings=self._settings(text=True),
                     retries=0,
                 )

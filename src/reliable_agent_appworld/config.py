@@ -41,7 +41,7 @@ class AgentConfig(ContractModel):
     model_retries: int = Field(default=0, ge=0, le=10)
     output_retries: int = Field(default=2, ge=0, le=10)
 
-    episode_timeout_seconds: float = Field(default=180, gt=0, allow_inf_nan=False)
+    episode_timeout_seconds: float = Field(default=240, gt=0, allow_inf_nan=False)
     action_budget: int = Field(default=30, ge=1)
     model_timeout_seconds: float = Field(default=60, gt=0, allow_inf_nan=False)
     final_response_reserve_seconds: float = Field(default=15, ge=0, allow_inf_nan=False)

@@ -172,7 +172,7 @@ After bounded partial-validation experiments, the selected candidate combines ac
 - [x] Test deterministic public-objective app coverage and generic aliases with no-secret checks; the expanded selector covered all 315 public variants in fake-API execution. Compact app-specific onboarding was not selected.
 - [x] Add generic `Name`-answer and rating-action cases plus concise source/aggregation guidance. Centralizing model-authored completion was not selected because it was not needed for the dev gate.
 - [x] Compare fenced-code decisions, correct action-first/marker parsing, and confirm the 240-second candidate at 4/6 train and 8/24 repeated dev with accepted AC2/AC3/AC7.
-- [ ] Write the next general spec with explicit default, review, dev, and full-validation gates. No spec is created during this investigation-only turn.
+- [x] Write `06-fenced-react-accuracy-general-spec.md` with explicit default, review, dev, and full-validation gates.
 - [ ] During the approved implementation, make fenced code and 240 seconds the default for `execute_code`, preserve structured output for other tools, rerun the exact default dev revision, complete independent review, and run full validation. Issue 6 requires overall success >= 0.3; project acceptance still requires the constitution threshold.
 - [ ] If later full evidence still shows many incorrect completions, compare one bounded public-evidence review before completion. Do not add planners or voting without direct evidence.
 - [x] Select the initial prompt/history/self-assessment design and create the implementation spec with explicit decision gates.
@@ -183,3 +183,4 @@ After bounded partial-validation experiments, the selected candidate combines ac
 
 - `../specs/01-baseline-agent-general-spec.md` defines the initial reactive implementation, local acceptance checks, and model-backed smoke/dev diagnostics.
 - `../specs/02-verified-react-accuracy-general-spec.md` freezes the selected verified-completion/onboarding runtime and its final default/review/full-validation gates.
+- `../specs/06-fenced-react-accuracy-general-spec.md` defines the selected action-first fenced-code runtime, generic app/answer/source policies, 240-second default, and issue-6 full-validation gate.

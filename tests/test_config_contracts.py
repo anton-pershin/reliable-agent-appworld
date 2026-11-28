@@ -264,7 +264,7 @@ def test_documented_model_and_deadline_defaults():
         "repetition_penalty": 1.0,
         "max_output_tokens": 1024,
         "model_retries": 0,
-        "episode_timeout_seconds": 180.0,
+        "episode_timeout_seconds": 240.0,
         "action_budget": 30,
         "model_timeout_seconds": 60.0,
         "final_response_reserve_seconds": 15.0,

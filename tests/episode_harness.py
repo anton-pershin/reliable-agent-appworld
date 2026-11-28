@@ -46,6 +46,75 @@ class FakeProvider:
                 tools = payload.get("tools") or []
                 request_number = len(provider.requests)
                 action = request_number == 1
+                if not tools or payload.get("tool_choice") == "none":
+                    content = (
+                        "ACTION\n```python\nprint('subprocess-ok')\n```"
+                        if action
+                        else "FINAL\n"
+                        + json.dumps(
+                            {
+                                "completed": True,
+                                "answer": "subprocess-ok",
+                                "confidence": 0.95,
+                                "likely_incorrect": False,
+                                "reason": "The public observation confirmed the printed output.",
+                            }
+                        )
+                    )
+                    if "input" in payload:
+                        response = {
+                            "id": f"resp-{request_number}",
+                            "object": "response",
+                            "created_at": int(time.time()),
+                            "status": "completed",
+                            "model": payload["model"],
+                            "output": [
+                                {
+                                    "id": f"msg-{request_number}",
+                                    "type": "message",
+                                    "status": "completed",
+                                    "role": "assistant",
+                                    "content": [
+                                        {
+                                            "type": "output_text",
+                                            "text": content,
+                                            "annotations": [],
+                                        }
+                                    ],
+                                }
+                            ],
+                            "usage": {
+                                "input_tokens": 100,
+                                "output_tokens": 20,
+                                "total_tokens": 120,
+                            },
+                        }
+                    else:
+                        response = {
+                            "id": f"chatcmpl-{request_number}",
+                            "object": "chat.completion",
+                            "created": int(time.time()),
+                            "model": payload["model"],
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "message": {"role": "assistant", "content": content},
+                                    "finish_reason": "stop",
+                                }
+                            ],
+                            "usage": {
+                                "prompt_tokens": 100,
+                                "completion_tokens": 20,
+                                "total_tokens": 120,
+                            },
+                        }
+                    encoded = json.dumps(response).encode()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(encoded)))
+                    self.end_headers()
+                    self.wfile.write(encoded)
+                    return
                 fragment = "ActionDecision" if action else "FinalDecision"
                 tool_names = [
                     item.get("function", {}).get("name") or item.get("name", "")
