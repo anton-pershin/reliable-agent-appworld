@@ -306,6 +306,9 @@ def test_domain_aliases_cover_implicit_apps_without_search_support():
         ("Organize my music collection.", {"spotify"}),
         ("Reorganize files under /home/user/documents.", {"file_system"}),
         ("Read documents/personal/notes.md.", {"file_system"}),
+        ("Send an email message with Gmail.", {"gmail"}),
+        ("Review https://example.com/report today.", set()),
+        ("Summarize the report from 12/31/2025.", set()),
     ]
     for objective, expected_apps in cases:
         apis = FakePublicAPIs(docs_app_names=())
