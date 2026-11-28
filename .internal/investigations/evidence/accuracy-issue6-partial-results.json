@@ -523,6 +523,40 @@
       },
       "infrastructure_failures": 0,
       "decision": "Select for a future implementation spec. The run exceeds 0.3, includes a multi-app success, preserves all three other criteria at accepted status, and has no infrastructure failure. This remains partial diagnostic evidence, not authoritative project acceptance."
+    },
+    {
+      "run_id": "20261128T035626-369210Z-851e09cebfdd",
+      "run_directory": "artifacts/issue6-investigation/runs/20261128T035626-369210Z-851e09cebfdd",
+      "candidate": "first exact-default implementation before independent-review fixes",
+      "solution_commit": "04ee27dbbf696177cd9a12ec3ffddd19bb318057",
+      "solution_overrides": "--log-level ERROR",
+      "population": "frozen dev confirmation",
+      "successes": 6,
+      "episodes": 24,
+      "success_rate": 0.25,
+      "successes_by_scenario": {
+        "fac291d": 5,
+        "3ab5b8b": 0,
+        "383cbac": 1,
+        "530b157": 0
+      },
+      "incorrect_public_completions": 6,
+      "stopped_episodes": 12,
+      "AC2": {
+        "status": "accepted",
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "AC3": {
+        "status": "accepted",
+        "repeat_range": 0.0
+      },
+      "AC7": {
+        "status": "accepted",
+        "timely_rate": 1.0
+      },
+      "infrastructure_failures": 0,
+      "decision": "This exact-default revision did not meet the >=0.3 or multi-app gate. Independent review also returned four no-pass items. Do not start full validation on this revision; fix review findings and rerun the frozen dev population."
     }
   ],
   "static_candidate_checks": {
@@ -620,5 +654,21 @@
       "A 240-second default may increase full-validation wall time; no full run was started during investigation."
     ],
     "no_full_validation_performed": true
+  },
+  "review_status": {
+    "initial_commit": "04ee27dbbf696177cd9a12ec3ffddd19bb318057",
+    "initial_verdict": "NO-PASS",
+    "no_pass_items": [
+      "outer fenced-response structure",
+      "exact Python source validation",
+      "generic app aliases",
+      "rating-filter direct answers"
+    ],
+    "advisories_addressed": [
+      "action-first lifecycle regression",
+      "README trailing-final wording",
+      "controlled malformed-output exhaustion"
+    ],
+    "review_fix_commit_pending": true
   }
 }

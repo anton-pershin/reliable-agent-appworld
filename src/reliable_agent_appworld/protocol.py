@@ -180,6 +180,10 @@ _PRIVATE_CONTEXT = re.compile(
     r"\b(?:my|mine|me|i|current|previous|next|feed|queue|libraries|library|account|friends?|roommates?|coworkers?|spouse|wife|husband|transactions?|notes?|files?|bills?|tasks?|alarms?|messages?|playlists?)\b",
     re.IGNORECASE,
 )
+_FILE_PATH = re.compile(
+    r"(?<![:\w])(?:~|\.{1,2})?/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+"
+    r"|(?<![:/])\b(?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.-]+\b"
+)
 
 
 def appworld_discovery_action(
@@ -193,6 +197,7 @@ def appworld_discovery_action(
     objective = public_input.get("instruction") if isinstance(public_input, dict) else None
     if not isinstance(objective, str) or not objective:
         return None
+    file_path_hint = _FILE_PATH.search(objective) is not None
     if private_only and (
         _PRIVATE_CONTEXT.search(objective) is None and _objective_requests_answer(objective)
     ):
@@ -245,6 +250,7 @@ if relation_context and "phone" in access_tokens:
 ''' if authenticate else ""
     code = f'''# Deterministic public API onboarding; no private data is accessed.
 objective = {json.dumps(objective, ensure_ascii=False)}
+file_path_hint = {repr(file_path_hint)}
 print("Objective:", objective)
 
 def compact_doc(doc):
@@ -277,14 +283,14 @@ for api_name in ("show_profile", "show_account_passwords"):
 app_names = sorted({{doc.get("app_name") for doc in docs if isinstance(doc, dict)}} - {{"api_docs", "supervisor", None}})
 app_aliases = {{
     "amazon": ("amazon",),
-    "file_system": ("file system", "file_system", "~/"),
+    "file_system": ("file system", "file_system"),
     "gmail": ("gmail",),
-    "phone": ("phone", "alarm", "alarms", "text message", "voice message"),
+    "phone": ("phone", "alarm", "alarms", "message", "messages"),
     "simple_note": ("simple note", "simple_note", "simplenote"),
     "splitwise": ("splitwise",),
     "spotify": (
         "spotify", "playlist", "playlists", "song", "songs",
-        "artist", "artists", "album", "albums",
+        "artist", "artists", "album", "albums", "music",
     ),
     "todoist": ("todoist",),
     "venmo": ("venmo", "money", "payment", "payments", "pay", "paid"),
@@ -294,6 +300,8 @@ mentioned = [
     name for name in app_aliases
     if any(alias in objective_lower for alias in app_aliases.get(name, (name,)))
 ]
+if file_path_hint and "file_system" not in mentioned:
+    mentioned.append("file_system")
 if mentioned:
     app_names = mentioned
 relation_context = any(word in objective_lower for word in ("roommate", "family", "friend", "coworker", "sibling", "parent", "spouse", "wife", "husband"))
@@ -320,7 +328,7 @@ _ANSWER_IMPERATIVE = re.compile(
     re.IGNORECASE,
 )
 _ACTION_IMPERATIVE = re.compile(
-    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment|rate|rated|rating|increase|decrease)\b",
+    r"\b(?:play|send|add|remove|update|delete|set|like|unlike|create|mark|move|download|upload|follow|unfollow|befriend|unfriend|start|pause|seek|clear|reset|reassign|comment|rate|increase|decrease)\b",
     re.IGNORECASE,
 )
 

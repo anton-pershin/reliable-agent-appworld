@@ -364,7 +364,7 @@ def run_episode(case: EpisodeCase, *, cwd, pythonpath, secret_tag):
 
         action = read_message(ActionsMessage)
         assert action.call_id == "call-2"
-        assert action.actions[0].arguments["code"] == "print('subprocess-ok')"
+        assert action.actions[0].arguments["code"] == "print('subprocess-ok')\n"
         write_observation(process, action.call_id, "subprocess-ok\n")
 
         completion_action = read_message(ActionsMessage)

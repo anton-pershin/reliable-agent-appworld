@@ -296,26 +296,46 @@ class PydanticAIModelClient:
         self._log_result(result, operation_id, "tool")
         return result.output
 
+    @staticmethod
+    def _decode_final_payload(body: str) -> dict:
+        raw = body.strip()
+        if raw.startswith("```"):
+            match = re.fullmatch(r"```(?:json)?[ \t]*\n(.*?)\n```", raw, flags=re.DOTALL)
+            if match is None:
+                raise ValueError("FINAL must contain one complete JSON code block")
+            raw = match.group(1)
+        payload = json.loads(raw)
+        if not isinstance(payload, dict):
+            raise ValueError("FINAL must contain one JSON object")
+        return payload
+
     def _parse_code_output(self, state: TaskState, text: str) -> Decision:
-        action_marker = re.search(r"(?m)^\s*ACTION\b[^\n]*$", text)
-        final_marker = re.search(r"(?m)^\s*FINAL\b[^\n]*$", text)
-        if final_marker is not None and (
-            action_marker is None or final_marker.start() < action_marker.start()
-        ):
-            raw = text[final_marker.end() :].strip()
-            raw = raw.removeprefix("```json").removesuffix("```").strip()
-            payload = json.loads(raw)
-            if isinstance(payload, dict) and type(payload.get("answer")) in {int, float}:
+        marker = re.match(r"\s*(ACTION|FINAL)\b[^\n]*(?:\n|$)", text)
+        if marker is None:
+            raise ValueError("Return an ACTION code block before a FINAL response")
+        body = text[marker.end() :]
+        if marker.group(1) == "FINAL":
+            payload = self._decode_final_payload(body)
+            if type(payload.get("answer")) in {int, float}:
                 payload["answer"] = str(payload["answer"])
             return _FINAL_ADAPTER.validate_python(payload)
-        if action_marker is None:
-            raise ValueError("Return an ACTION code block before a FINAL response")
-        body_end = final_marker.start() if final_marker is not None else len(text)
-        body = text[action_marker.end() : body_end].strip()
-        blocks = re.findall(r"```(?:python|py)?\s*\n(.*?)```", body, flags=re.DOTALL)
-        if len(blocks) != 1 or not blocks[0].strip():
-            raise ValueError("ACTION must contain exactly one nonempty fenced Python code block")
-        code = blocks[0].strip()
+
+        opening = re.match(r"\s*```(?:python|py)?[ \t]*\n", body)
+        if opening is None:
+            raise ValueError("ACTION must start with one fenced Python code block")
+        remainder = body[opening.end() :]
+        closing = re.search(r"(?m)^```[ \t]*$", remainder)
+        if closing is None:
+            raise ValueError("ACTION code block must be complete")
+        code = remainder[: closing.start()]
+        trailing = remainder[closing.end() :].strip()
+        if trailing:
+            trailing_marker = re.match(r"FINAL\b[^\n]*(?:\n|$)", trailing)
+            if trailing_marker is None:
+                raise ValueError("Only one trailing FINAL response may follow ACTION")
+            self._decode_final_payload(trailing[trailing_marker.end() :])
+        if not code.strip():
+            raise ValueError("ACTION code block must be nonempty")
         ast.parse(code)
         if "execute_code" not in {tool.name for tool in state.task.tools}:
             raise ValueError("Code output requires the supplied execute_code tool")

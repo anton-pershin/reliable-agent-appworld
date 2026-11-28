@@ -252,7 +252,7 @@ async def test_code_output_parses_one_fenced_action_without_json_escaping():
 
     assert isinstance(result, ActionDecision)
     assert result.action.name == "execute_code"
-    assert result.action.arguments == {"code": "print(42)"}
+    assert result.action.arguments == {"code": "print(42)\n"}
     assert "Return ACTION" in client.code_instructions
 
 
@@ -295,7 +295,10 @@ async def test_code_output_repairs_missing_code_block():
     [
         "ACTION\n```python\nprint(42)",
         "ACTION\n```python\nprint(42)\n```\n```python\nprint(43)\n```",
+        "ACTION\n```python\nprint(42)\n```\n```python\nprint(43)",
         "ACTION\n```python\nif True print(42)\n```",
+        "ACTION\n```python\n    print(42)\n```",
+        "ACTION\n```python\nprint(42)\n```\nFINAL\n```json\n{}",
     ],
 )
 def test_code_parser_rejects_partial_multiple_and_invalid_code(response):
@@ -304,6 +307,19 @@ def test_code_parser_rejects_partial_multiple_and_invalid_code(response):
 
     with pytest.raises((ValueError, SyntaxError)):
         client._parse_code_output(TaskState(task=task()), response)
+
+
+def test_code_parser_allows_final_as_a_python_variable():
+    cfg = config(output_mode="code")
+    client = PydanticAIModelClient(cfg, EventLogger("parser", cfg))
+
+    result = client._parse_code_output(
+        TaskState(task=task()),
+        'ACTION\n```python\nFINAL = "draft"\nprint(FINAL)\n```',
+    )
+
+    assert isinstance(result, ActionDecision)
+    assert 'FINAL = "draft"' in result.action.arguments["code"]
 
 
 def test_code_parser_does_not_discard_an_action_after_a_final():
@@ -358,7 +374,7 @@ async def test_auto_uses_code_only_when_execute_code_is_supplied():
     other_result = await client.decide(TaskState(task=other_task), 30)
 
     assert isinstance(code_result, ActionDecision)
-    assert code_result.action.arguments == {"code": "print('auto')"}
+    assert code_result.action.arguments == {"code": "print('auto')\n"}
     assert isinstance(other_result, ActionDecision)
     response_modes = [
         event.get("output_mode")
@@ -388,6 +404,63 @@ async def test_explicit_code_mode_without_execute_code_is_controlled():
 
     with pytest.raises(ModelRequestError, match="requires the supplied execute_code"):
         await client.decide(TaskState(task=other_task), 30)
+
+
+async def test_action_first_response_executes_then_requests_a_fresh_final():
+    cfg = config(output_mode="code", bootstrap_discovery=False)
+    event_logger, _ = logger(cfg)
+    calls = 0
+
+    def respond(messages, info):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            trailing = final().model_dump() | {"answer": "stale"}
+            content = (
+                "ACTION\n```python\nprint('work')\n```\nFINAL\n"
+                + json.dumps(trailing)
+            )
+        else:
+            content = "FINAL\n" + json.dumps(final().model_dump() | {"answer": "fresh"})
+        return ModelResponse(parts=[TextPart(content=content)])
+
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
+    engine = DecisionEngine(cfg, client, event_logger)
+    executor = ScriptedExecutor()
+    runner = TaskRunner(cfg, engine, executor, event_logger)
+
+    result = await runner.run(task())
+
+    assert result.answer == "fresh"
+    assert calls == 2
+    assert len(executor.calls) == 1
+    assert runner.last_state is not None
+    assert runner.last_state.pending_final is None
+
+
+async def test_repeated_malformed_code_ends_in_controlled_flagged_failure():
+    cfg = config(
+        output_mode="code", output_retries=2, bootstrap_discovery=False
+    )
+    event_logger, _ = logger(cfg)
+    calls = 0
+
+    def respond(messages, info):
+        nonlocal calls
+        calls += 1
+        return ModelResponse(parts=[TextPart(content="ACTION\nprint(42)")])
+
+    client = PydanticAIModelClient(cfg, event_logger, FunctionModel(respond))
+    engine = DecisionEngine(cfg, client, event_logger)
+    executor = ScriptedExecutor()
+    runner = TaskRunner(cfg, engine, executor, event_logger)
+
+    result = await runner.run(task())
+
+    assert result.completed is False
+    assert result.likely_incorrect is True
+    assert calls == 3
+    assert executor.calls == []
 
 
 async def test_history_trims_old_observations_then_whole_entries():

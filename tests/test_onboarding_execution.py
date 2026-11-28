@@ -302,6 +302,10 @@ def test_domain_aliases_cover_implicit_apps_without_search_support():
         ("Set my wake-up alarm.", {"phone"}),
         ("Reorganize files under ~/documents.", {"file_system"}),
         ("Send the owed money and reply by phone text.", {"phone", "venmo"}),
+        ("Read my messages.", {"phone"}),
+        ("Organize my music collection.", {"spotify"}),
+        ("Reorganize files under /home/user/documents.", {"file_system"}),
+        ("Read documents/personal/notes.md.", {"file_system"}),
     ]
     for objective, expected_apps in cases:
         apis = FakePublicAPIs(docs_app_names=())

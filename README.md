@@ -50,7 +50,7 @@ Important defaults:
 | Process-wide stderr proxy | `900,000` bytes |
 | Cumulative protocol stdout | `1,000,000` bytes with reserved final space |
 
-For `execute_code`, each `ACTION` response contains one complete fenced Python block. A trailing `FINAL` is considered only after the action's public observation. A `FINAL` response contains strict completion, answer, confidence, `likely_incorrect`, and reason fields; numeric protocol answers are converted to strings. Invalid responses receive bounded repair before a controlled failure. Explicit `tool`, `text`, and `code` modes remain available for diagnosis.
+For `execute_code`, each `ACTION` response contains one complete fenced Python block. A trailing `FINAL` is validated but not retained; the agent requests a new final after the action's public observation. A `FINAL` response contains strict completion, answer, confidence, `likely_incorrect`, and reason fields; numeric protocol answers are converted to strings. Invalid responses receive bounded repair before a controlled failure. Explicit `tool`, `text`, and `code` modes remain available for diagnosis.
 
 No model seed is configured. Model generation, repairs, action execution, and final delivery share an absolute episode deadline; transient identical outer model retries are disabled by default. Real standard-input/output descriptors use nonblocking I/O, and protocol stdout reserves space for a final response. Controlled failure responses use `completed=false` and `likely_incorrect=true`. The reusable runner propagates cancellation; the one-episode CLI applies its own bounded controlled-final policy.
 
